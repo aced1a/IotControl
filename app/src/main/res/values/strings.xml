@@ -1,0 +1,58 @@
+<resources>
+    <string name="app_name">IotControlCompose</string>
+    <string name="dashboard">Dashboard</string>
+    <string name="connections">Connections</string>
+    <string name="scripts">Scripts</string>
+    <string name="settings">Settings</string>
+
+    <string name="on_command">On</string>
+    <string name="off_command">Off</string>
+    <string name="sync_command">Synchronize</string>
+    <string name="set_command">Set</string>
+
+    <string name="on_event">On</string>
+    <string name="off_event">Off</string>
+    <string name="set_event">Set</string>
+    <string name="inverse_event">Inverse</string>
+    <string name="click_event">Click</string>
+    <string name="dclick_event">Double click</string>
+
+    <string name="mqtt_label">MQTT</string>
+    <string name="local_mqtt_label">MQTT</string>
+    <string name="sms_label">SMS</string>
+    
+    <string name="local_label">Local</string>
+    <string name="ssl_label">Protected</string>
+    <string name="anon_label">Anonymous</string>
+    <string name="credentials_label">Credentials</string>
+
+    <string name="name_label">Name</string>
+    <string name="ip_label">Ip</string>
+    <string name="port_label">Port</string>
+    <string name="number_label">Number</string>
+    <string name="username_label">Username</string>
+    <string name="password_label">Password</string>
+    <string name="parser_label">Parser</string>
+
+    <string name="ssl_switcher_label">SSL</string>
+
+    <string name="displayable_label">Displayable</string>
+
+    <string name="cancel_label">Cancel</string>
+    <string name="save_label">Save</string>
+    <string name="edit_label">Edit</string>
+    <string name="delete_label">Delete</string>
+    <string name="accept_label">Accept</string>
+
+    <string name="device_list_text">Open device list</string>
+    <string name="json_payload_text">Payload is json</string>
+
+    <string name="light_type_label">Light</string>
+    <string name="dimlight_type_label">Light with dimming</string>
+    <string name="button_type_label">Button</string>
+    <string name="switch_type_label">Switch</string>
+    <string name="state_type_label">State</string>
+
+    <string name="json_label">Json</string>
+    <string name="plain_label">Plain</string>
+</resources>
