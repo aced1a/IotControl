@@ -51,14 +51,15 @@ fun DevicesScreen(
                 expanded)
        },
         floatingActionButtonPosition = FabPosition.End
-    ) {
+    ) { padding ->
         val state by deviceViewModel.uiState.collectAsStateWithLifecycle()
         val selectState by deviceViewModel.selectState.collectAsStateWithLifecycle()
 
         DeviceList(
             devices = state.devices,
             { toDeviceDialog(it, deviceViewModel.connectionId) },
-            { /*TODO("DELETE") */ }
+            deviceViewModel::delete,
+            modifier = Modifier.padding(padding)
         )
 
         if(selectDeviceDialog.value) {
@@ -72,8 +73,7 @@ fun NewDeviceExtendedFab(
     newDevice: () -> Unit,
     selectDevice: () -> Unit,
     expanded: MutableState<Boolean>
-)
-{
+) {
     Box {
         AnimatedVisibility(visible=expanded.value) {
             FloatingActionButton(
@@ -108,9 +108,10 @@ fun NewDeviceExtendedFab(
 fun DeviceList(
     devices: List<Device>,
     select: (UUID) -> Unit,
-    delete: (Device) -> Unit
+    delete: (Device) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    LazyColumn(state= rememberLazyListState()) {
+    LazyColumn(state= rememberLazyListState(), modifier = modifier) {
         items(devices) { device ->
             DeviceItem(device, select, delete)
         }
@@ -157,6 +158,7 @@ fun DeviceItem(device: Device,
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SelectExistingDeviceDialog(
     state: SelectDeviceUiState,
@@ -164,15 +166,23 @@ fun SelectExistingDeviceDialog(
     select: (Device) -> Unit
 ) {
     val acceptVisibility = remember { mutableStateOf(false) }
-    Dialog(onDismissRequest = { visibility.value = false }) {
+    ModalBottomSheet(onDismissRequest = { visibility.value = false }) {
         Card(
             modifier = Modifier.padding(all=15.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             LazyColumn(modifier = Modifier.padding(all=10.dp)) {
                 item {
-                    Text("Devices without ${state.type.name}")
+                    Text(stringResource(R.string.devices_without, state.type.name))
                     Divider()
+                }
+                item {
+                    if(state.withoutConnection.isEmpty()) {
+                        Text(
+                            stringResource(R.string.no_devices_found),
+                            modifier = Modifier.padding(top = 10.dp, bottom = 10.dp)
+                        )
+                    }
                 }
                 items(state.withoutConnection) { device ->
                     SimpleDeviceItem(device) {
@@ -181,15 +191,23 @@ fun SelectExistingDeviceDialog(
                     }
                 }
                 item {
-                    Text("Other devices")
+                    Text(stringResource(R.string.devices_other))
                     Divider()
+                }
+                item {
+                    if(state.others.isEmpty()) {
+                        Text(
+                            stringResource(R.string.no_devices_found),
+                            modifier = Modifier.padding(top = 10.dp, bottom = 10.dp)
+                        )
+                    }
                 }
                 items(state.others) { device ->
                     SimpleDeviceItem(device) {
                         acceptVisibility.value = true
                     }
                     if(acceptVisibility.value) SimpleTextDialog(
-                        "Replace connection for this device",
+                        stringResource(R.string.change_connection),
                         accept = {
                             select(device)
                             visibility.value = false },
@@ -201,18 +219,18 @@ fun SelectExistingDeviceDialog(
 }
 
 @Composable
-fun SimpleDeviceItem(device: Device,
-               select: () -> Unit
+fun SimpleDeviceItem(
+    device: Device,
+    modifier: Modifier = Modifier,
+    select: () -> Unit
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(15.dp), verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .padding(horizontal = 15.dp)
-            .fillMaxWidth()
+        modifier = modifier
             .clickable { select() }
     ) {
         WidgetIcon(device.type)
 
-        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Column(verticalArrangement = Arrangement.Center) {
             Text(device.name, style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(device.type.nameId), style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.secondary)
 
@@ -222,15 +240,5 @@ fun SimpleDeviceItem(device: Device,
                 if(device.smsConnectionId != null) SimpleChip(R.string.mqtt_label)
             }
         }
-    }
-}
-
-
-@Preview
-@Composable
-fun PreviewDeviceItem()
-{
-    IotControlTheme {
-        DeviceItem(Device(name="Kitchen light", type=DeviceType.Light, mqttConnectionId = UUID.randomUUID(), smsConnectionId = UUID.randomUUID()), {}, {})
     }
 }

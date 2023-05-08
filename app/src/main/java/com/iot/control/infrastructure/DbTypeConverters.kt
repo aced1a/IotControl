@@ -37,4 +37,10 @@ class DbTypeConverters {
 
     @TypeConverter
     fun fromConnectionType(type: ConnectionType): Int = type.ordinal
+
+    @TypeConverter
+    fun fromDate(date: Date): Long = date.time
+
+    @TypeConverter
+    fun toDate(time: Long): Date = Date(time)
 }

@@ -12,10 +12,10 @@ import com.iot.control.ui.connections.ConnectionsScreen
 import com.iot.control.ui.dashboard.DashboardScreen
 import com.iot.control.ui.devices.DeviceDialog
 import com.iot.control.ui.devices.DevicesScreen
-import com.iot.control.viewmodel.ConnectionsViewModel
-import com.iot.control.viewmodel.DashboardViewModel
-import com.iot.control.viewmodel.DeviceDetailViewModel
-import com.iot.control.viewmodel.DevicesViewModel
+import com.iot.control.ui.scripts.ScriptScreen
+import com.iot.control.viewmodel.*
+import androidx.activity.viewModels
+import androidx.hilt.navigation.compose.hiltViewModel
 import java.util.UUID
 
 @Composable
@@ -27,14 +27,19 @@ fun IotControlNavGraph(
     NavHost(navController=navController, startDestination=IotControlNavigation.CONNECTIONS,  modifier=modifier)
     {
         composable(IotControlNavigation.DASHBOARD) {
-            val dashboardViewModel: DashboardViewModel = viewModel(factory = DashboardViewModel.provideFactory())
+            val dashboardViewModel = hiltViewModel<DashboardViewModel>()
             DashboardScreen(dashboardViewModel)
         }
+
         composable(IotControlNavigation.CONNECTIONS) {
-            val connectionsViewModel: ConnectionsViewModel = viewModel(factory=ConnectionsViewModel.provideFactory())
+            val connectionsViewModel = hiltViewModel<ConnectionsViewModel>()
             ConnectionsScreen(connectionsViewModel, navigation.navigateToDevices)
         }
-        composable(IotControlNavigation.SCRIPTS) {}
+
+        composable(IotControlNavigation.SCRIPTS) {
+            val scriptViewModel = hiltViewModel<ScriptViewModel>()
+            ScriptScreen(scriptViewModel)
+        }
         composable(IotControlNavigation.SETTINGS) {}
 
         composable(
@@ -42,26 +47,23 @@ fun IotControlNavGraph(
             arguments = listOf(
                 navArgument("connectionId") { type = NavType.StringType }
             )
-        ) { backStack ->
-            val strId = backStack.arguments?.getString("connectionId")
-            val connectionId = UUID.fromString(strId)
+        ) {
 
-            val devicesViewModel: DevicesViewModel = viewModel(factory=DevicesViewModel.provideFactory(connectionId))
+            val devicesViewModel = hiltViewModel<DevicesViewModel>()
             DevicesScreen(devicesViewModel, navigation.navigateToDeviceDetail)
         }
 
         composable(
-            "${IotControlNavigation.DEVICE_DETAILS}/{deviceId}/{connectionId}",
+            "${IotControlNavigation.DEVICE_DETAILS}/{connectionId}?deviceId={deviceId}",
             arguments = listOf(
-                navArgument("deviceId") { type = NavType.StringType },
+                navArgument("deviceId") {
+                    type = NavType.StringType
+                    nullable = true
+                },
                 navArgument("connectionId") { type = NavType.StringType }
             )
-        ) { backStack ->
-            val strId = backStack.arguments?.getString("deviceId")
-            val deviceId = if(strId == null || strId == "null") null else UUID.fromString(strId)
-            val connectionId = UUID.fromString(backStack.arguments?.getString("connectionId"))
-
-            val deviceDetailViewModel: DeviceDetailViewModel = viewModel(factory=DeviceDetailViewModel.provideFactory(deviceId, connectionId))
+        ) {
+            val deviceDetailViewModel = hiltViewModel<DeviceDetailViewModel>()
             DeviceDialog(deviceDetailViewModel, back = navigation.back)
         }
     }

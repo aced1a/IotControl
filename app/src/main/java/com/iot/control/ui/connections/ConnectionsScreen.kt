@@ -1,5 +1,6 @@
 package com.iot.control.ui.connections
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,12 +8,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iot.control.R
 import com.iot.control.model.Connection
@@ -37,22 +43,28 @@ fun ConnectionsScreen(
         val state by connectionsViewModel.uiState.collectAsStateWithLifecycle()
         ConnectionsList(
             connections = state.connections,
+            connectionsViewModel::active,
             toDevices,
             {
                 connectionsViewModel.loadSelectedConnection(it)
                 openDialog.value = true
             },
-            connectionsViewModel::deleteConnection
+            connectionsViewModel::deleteConnection,
+            modifier = Modifier.padding(it)
         )
 
         if(openDialog.value)
-            ModalBottomSheet(
+            Dialog(
+                properties = DialogProperties(usePlatformDefaultWidth = false),
                 onDismissRequest = { openDialog.value = false}
             ) {
                 ConnectionDialog(
                     dialogState,
                     connectionsViewModel::updateDialogModel,
-                    connectionsViewModel::saveConnection,
+                    {
+                        connectionsViewModel.saveConnection()
+                        openDialog.value = false
+                    },
                     openDialog,
                     Modifier.padding(horizontal = 25.dp, vertical = 15.dp)
                 )
@@ -80,13 +92,15 @@ fun NewConnectionFab(
 @Composable
 fun ConnectionsList(
     connections: List<Connection>,
+    getConnectionStatus: (Connection) -> Boolean,
     toDeviceList: (UUID) -> Unit,
     openEditDialog: (Connection) -> Unit,
-    delete: (Connection) -> Unit
+    delete: (Connection) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    LazyColumn(state=rememberLazyListState()) {
+    LazyColumn(state=rememberLazyListState(), modifier = modifier) {
         items(connections) { connection ->
-            ConnectionItem(connection, toDeviceList, openEditDialog, delete)
+            ConnectionItem(connection, getConnectionStatus, toDeviceList, openEditDialog, delete)
         }
         item {
            Spacer(modifier = Modifier.height(70.dp))
@@ -97,6 +111,7 @@ fun ConnectionsList(
 @Composable
 fun ConnectionItem(
     connection: Connection,
+    getConnectionStatus: (Connection) -> Boolean,
     toDeviceList: (UUID) -> Unit,
     openEditDialog: (Connection) -> Unit,
     delete: (Connection) -> Unit
@@ -114,7 +129,13 @@ fun ConnectionItem(
         Text(connection.name, style = MaterialTheme.typography.headlineSmall)
         Text(connection.address, style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.secondary)
 
-        Row(modifier=Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(5.dp)) {
+        Row(
+            modifier=Modifier.fillMaxWidth(),
+            horizontalArrangement=Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            ActivityChip(getConnectionStatus(connection))
             SimpleChip(connection.type.labelId)
             SimpleChip(
                 if(connection.isCredentials) R.string.credentials_label else R.string.anon_label
@@ -138,7 +159,19 @@ fun ContextMenuItem(resourceId: Int, callback: () -> Unit)
         stringResource(resourceId),
         color=MaterialTheme.colorScheme.secondary,
         style = MaterialTheme.typography.bodyMedium,
-        modifier = Modifier.clickable(onClick = callback).fillMaxWidth())
+        modifier = Modifier
+            .clickable(onClick = callback)
+            .fillMaxWidth())
+}
+
+@Composable
+fun ActivityChip(active: Boolean) {
+
+    Icon(
+        imageVector = Icons.Filled.CheckCircle,
+        tint = if(active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+        contentDescription = "")
+
 }
 
 @Composable
@@ -149,18 +182,5 @@ fun SimpleChip(resourceId: Int)
         Text(stringResource(resourceId),
             modifier = Modifier.padding(all=5.dp) ,
             style = MaterialTheme.typography.titleSmall)
-    }
-}
-
-
-@Preview
-@Composable
-fun PreviewConnectionList()
-{
-    IotControlTheme {
-        ConnectionsList(listOf(
-            Connection(name="Kitchen", type=ConnectionType.MQTT),
-            Connection(name="Bedroom", type=ConnectionType.SMS)
-        ), {}, {}, {})
     }
 }

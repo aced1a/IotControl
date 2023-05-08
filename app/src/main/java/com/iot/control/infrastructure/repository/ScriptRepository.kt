@@ -11,8 +11,12 @@ class ScriptRepository(val dao: ScriptDao) {
 
     suspend fun getByEventId(id: UUID) = dao.getByEventId(id)
 
+    suspend fun getByTimerId(id: UUID) = dao.getByTimerId(id)
+
     suspend fun add(script: Script) = dao.add(script)
 
     suspend fun update(script: Script) = dao.update(script)
+
+    suspend fun delete(script: Script) = dao.delete(script)
 
 }

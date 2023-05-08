@@ -1,12 +1,12 @@
 package com.iot.control.infrastructure.mqtt
 
-class MqttClient {
-    private val subscription: MutableSet<String> = mutableSetOf()
+interface MqttClient {
 
-    fun connect() {}
-    fun publish(topic: String, payload: String) {}
-    fun subscribe(topic: String) {}
-    fun unsubscribe(){}
+    fun connect()
+    fun disconnect()
+    fun publish(topic: String, payload: String, callback: () -> Unit)
+    fun subscribe(topic: String)
+    fun unsubscribe(topic: String)
 
     enum class Version { Mqtt3, Mqtt5 }
 
@@ -14,3 +14,4 @@ class MqttClient {
         fun configure(): MqttConfigurator = MqttConfigurator()
     }
 }
+

@@ -1,9 +1,12 @@
 package com.iot.control.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.iot.control.infrastructure.DbContext
+import com.iot.control.infrastructure.repository.CommandRepository
+import com.iot.control.infrastructure.repository.ConnectionRepository
+import com.iot.control.infrastructure.repository.DeviceRepository
+import com.iot.control.infrastructure.repository.EventRepository
 import com.iot.control.model.Command
 import com.iot.control.model.Connection
 import com.iot.control.model.Device
@@ -12,6 +15,7 @@ import com.iot.control.model.enums.CommandAction
 import com.iot.control.model.enums.ConnectionType
 import com.iot.control.model.enums.DeviceType
 import com.iot.control.model.enums.EventType
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +23,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.*
+import javax.inject.Inject
 
 data class Marked<T>(val item: T, val isNew: Boolean)
 
@@ -39,17 +44,20 @@ data class DialogUiState(
     val dataField: String = "")
 
 
-class DeviceDetailViewModel(private val deviceId: UUID?,
-                            private val connectionId: UUID) : ViewModel() {
+@HiltViewModel
+class DeviceDetailViewModel @Inject constructor(
+    private val connectionRepository: ConnectionRepository,
+    private val deviceRepository: DeviceRepository,
+    private val commandRepository: CommandRepository,
+    private val eventRepository: EventRepository,
+    private val savedStateHandle: SavedStateHandle
+): ViewModel() {
 
-    private val connectionRep = DbContext.get().connectionRepository
-    private val deviceRep = DbContext.get().deviceRepository
-    private val commandRep = DbContext.get().commandRepository
-    private val eventRep = DbContext.get().eventRepository
+    private var deviceId: UUID? = null
+    private val connectionId: UUID = UUID.fromString(savedStateHandle.get<String>("connectionId"))
 
     private lateinit var connection: Connection
     private lateinit var device: Device
-
 
     private val _uiState = MutableStateFlow(DeviceDetailUiState())
     val uiState: StateFlow<DeviceDetailUiState> = _uiState.asStateFlow()
@@ -57,27 +65,33 @@ class DeviceDetailViewModel(private val deviceId: UUID?,
     private val _dialogState = MutableStateFlow(DialogUiState())
     val dialogState: StateFlow<DialogUiState> = _dialogState.asStateFlow()
 
-
     init {
+        val id = savedStateHandle.get<String>("deviceId")
+        if(id != null) deviceId = UUID.fromString(id)
+
         loadDeviceDetail()
     }
 
     private fun loadDeviceDetail()
     {
         viewModelScope.launch {
-            connection = connectionRep.getById(connectionId) ?: throw java.lang.IllegalArgumentException("Wrong connection id")
+            connection = connectionRepository.getById(connectionId) ?: throw java.lang.IllegalArgumentException("Wrong connection id")
 
             if(deviceId == null) {
                 device = Device(
+                    name = "",
+                    value = "OFF",
+                    type = DeviceType.Light,
+                    idDisplayable = true,
                     mqttConnectionId = if(connection.type.value() == ConnectionType.MQTT) connection.id else null,
                     smsConnectionId =  if(connection.type == ConnectionType.SMS) connection.id else null
                 )
                 return@launch
             }
 
-            val deviceDef = async { deviceRep.getDeviceById(deviceId) }
-            val commandsDef = async { commandRep.getByDeviceIdAndType(deviceId, connection.type.value()).map { Marked(it, false) } }
-            val eventsDef = async { eventRep.getByConnectionIdAndDeviceID(connectionId, deviceId).map { Marked(it, false) } }
+            val deviceDef = async { deviceRepository.getDeviceById(deviceId!!) }
+            val commandsDef = async { commandRepository.getByDeviceIdAndType(deviceId!!, connection.type.value()).map { Marked(it, false) } }
+            val eventsDef = async { eventRepository.getByConnectionIdAndDeviceID(connectionId, deviceId!!).map { Marked(it, false) } }
 
             device = deviceDef.await() ?: throw java.lang.IllegalArgumentException("Wrong device id")
             val commands = commandsDef.await()
@@ -110,16 +124,16 @@ class DeviceDetailViewModel(private val deviceId: UUID?,
             value = uiState.value.type.default
         )
         viewModelScope.launch {
-            if (deviceId == null) deviceRep.add(device)
-            else deviceRep.update(device)
+            if (deviceId == null) deviceRepository.add(device)
+            else deviceRepository.update(device)
 
             for(command in uiState.value.commands)
-                if(command.isNew) commandRep.add(command.item)
-                else commandRep.update(command.item)
+                if(command.isNew) commandRepository.add(command.item)
+                else commandRepository.update(command.item)
 
             for(event in uiState.value.events)
-                if(event.isNew) eventRep.add(event.item)
-                else eventRep.update(event.item)
+                if(event.isNew) eventRepository.add(event.item)
+                else eventRepository.update(event.item)
         }
     }
 
@@ -151,8 +165,8 @@ class DeviceDetailViewModel(private val deviceId: UUID?,
             topic = dialogState.value.topic,
             payload = dialogState.value.payload,
             isJson = dialogState.value.isJson,
-            dataField = dialogState.value.dataField,
-
+            dataField = dialogState.value.dataField.ifEmpty { null },
+            isSync = false,
             deviceId = device.id,
             connectionId = connectionId)
 
@@ -178,7 +192,7 @@ class DeviceDetailViewModel(private val deviceId: UUID?,
                 topic = event.topic,
                 payload = event.payload,
                 isJson = event.isJson,
-                dataField = event.dataField
+                dataField = event.dataField ?: ""
             )
         }
     }
@@ -190,7 +204,10 @@ class DeviceDetailViewModel(private val deviceId: UUID?,
             topic = dialogState.value.topic,
             payload = dialogState.value.payload,
             isJson = dialogState.value.isJson,
-            dataField = dialogState.value.dataField,
+            dataField = dialogState.value.dataField.ifEmpty { null },
+            connectionId = connectionId,
+            deviceId = device.id,
+            isSync = false
         )
         _uiState.update { ui ->
             ui.copy(
@@ -202,11 +219,5 @@ class DeviceDetailViewModel(private val deviceId: UUID?,
 
     companion object {
         const val TAG = "DeviceDetailViewModel"
-        fun provideFactory(deviceId: UUID?, connectionId: UUID): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return DeviceDetailViewModel(deviceId, connectionId) as T
-            }
-        }
     }
 }

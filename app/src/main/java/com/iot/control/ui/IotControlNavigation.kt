@@ -41,7 +41,9 @@ class IotControlNavigation(navController: NavHostController) {
     }
 
     val navigateToDeviceDetail: (UUID?, UUID) -> Unit = { deviceId, connectionId ->
-        navController.navigate("$DEVICE_DETAILS/$deviceId/$connectionId")
+
+        val deviceIdArg = if(deviceId != null) "?deviceId=$deviceId" else ""
+        navController.navigate("$DEVICE_DETAILS/$connectionId$deviceIdArg")
     }
 
     val back: () -> Unit = {

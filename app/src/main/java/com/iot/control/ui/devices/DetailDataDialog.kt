@@ -13,6 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.iot.control.R
 import com.iot.control.model.Command
+import com.iot.control.model.Device
 import com.iot.control.model.enums.CommandAction
 import com.iot.control.viewmodel.DialogUiState
 import com.iot.control.viewmodel.Marked
@@ -32,13 +33,13 @@ fun DetailDataDialog(
 
         OutlinedTextField(
             value = dialogUiState.topic,
-            label = { Text("Topic") },
+            label = { Text(stringResource(R.string.topic_label)) },
             onValueChange = { update(dialogUiState.copy(topic = it)) }
         )
 
         OutlinedTextField(
             value = dialogUiState.payload,
-            label = { Text("Payload") },
+            label = { Text(stringResource(R.string.payload_label)) },
             onValueChange = { update(dialogUiState.copy(payload = it)) }
         )
 
@@ -49,13 +50,14 @@ fun DetailDataDialog(
                 onCheckedChange = { update(dialogUiState.copy(isJson = it)) }
             )
         }
-        if(dialogUiState.isJson) Row {
-            Text("Data field")
+
+        if(dialogUiState.isJson)
             OutlinedTextField(
+                label = { Text(stringResource(R.string.data_field_label))},
                 value = dialogUiState.dataField,
                 onValueChange = { update(dialogUiState.copy(dataField = it)) }
             )
-        }
+
 
         Row {
             TextButton(
@@ -71,16 +73,4 @@ fun DetailDataDialog(
             }
         }
     }
-}
-
-
-@Composable
-fun NewItemList(name: String, action: () -> Unit)
-{
-    Text(
-        name,
-        modifier = Modifier.fillMaxWidth().clickable { action() },
-        style=MaterialTheme.typography.bodyMedium,
-        color= MaterialTheme.colorScheme.secondary
-    )
 }

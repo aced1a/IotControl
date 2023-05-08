@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">IotControlCompose</string>
+    <string name="app_name">IotControl</string>
     <string name="dashboard">Dashboard</string>
     <string name="connections">Connections</string>
     <string name="scripts">Scripts</string>
@@ -26,6 +26,29 @@
     <string name="anon_label">Anonymous</string>
     <string name="credentials_label">Credentials</string>
 
+    <string name="new_connection_label"> Create new connection </string>
+    <string name="new_device_label"> Create new device </string>
+    <string name="new_script_label"> Create new script </string>
+
+    <string name="commands_label"> Commands </string>
+    <string name="events_label"> Events </string>
+    <string name="event_label"> Event </string>
+    <string name="device_label"> Device </string>
+
+    <string name="add_new_command"> Add new %1$s command </string>
+    <string name="add_new_event"> Add new %1$s event </string>
+    <string name="action_label"> Action </string>
+    <string name="guard_label"> Guard </string>
+
+    <string name="source_device_label"> Source device </string>
+    <string name="target_device_label"> Target device </string>
+
+    <string name="not_selected"> Not selected </string>
+    <string name="devices_without"> Devices without %1$s connection </string>
+    <string name="devices_other"> Other devices </string>
+    <string name="no_devices_found"> No devices found </string>
+    <string name="change_connection"> Change connection for selected device? </string>
+
     <string name="name_label">Name</string>
     <string name="ip_label">Ip</string>
     <string name="port_label">Port</string>
@@ -33,6 +56,9 @@
     <string name="username_label">Username</string>
     <string name="password_label">Password</string>
     <string name="parser_label">Parser</string>
+    <string name="topic_label"> Topic </string>
+    <string name="payload_label"> Payload </string>
+    <string name="data_field_label"> Data field </string>
 
     <string name="ssl_switcher_label">SSL</string>
 

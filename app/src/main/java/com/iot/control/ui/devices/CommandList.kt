@@ -12,7 +12,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.iot.control.R
 import com.iot.control.model.Command
@@ -23,22 +28,23 @@ import com.iot.control.viewmodel.Marked
 @Composable
 fun CommandList(
     commands: List<Marked<Command>>,
-    visible: MutableState<Boolean>,
     editCommand: (Command) -> Unit,
     addCommand: (CommandAction) -> Unit
 ) {
+    var visible by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { visible.value = visible.value.not() }
+            .clickable { visible = visible.not() }
     ) {
         Text(
-            "Commands",
+            stringResource(R.string.commands_label),
             modifier = Modifier.fillMaxWidth(),
             style = MaterialTheme.typography.headlineSmall)
         Divider()
 
-        if(visible.value) {
+        if(visible) {
             LazyColumn {
                 items(commands) { command ->
                     CommandListItem(command.item, editCommand)
@@ -46,7 +52,9 @@ fun CommandList(
                 item { Divider() }
                 items(CommandAction.values()) { action ->
                     if(commands.find { it.item.action == action } == null)
-                        NewItemList(action.name) { addCommand(action) }
+                        NewItemList(
+                            stringResource(R.string.add_new_command, action.name)
+                        ) { addCommand(action) }
                 }
             }
         }

@@ -2,6 +2,7 @@ package com.iot.control.infrastructure.repository
 
 import android.util.Log
 import com.iot.control.infrastructure.dao.ConnectionDao
+import com.iot.control.infrastructure.dao.DeviceDao
 import com.iot.control.model.Connection
 import com.iot.control.model.enums.ConnectionType
 import kotlinx.coroutines.Dispatchers
@@ -42,5 +43,9 @@ class ConnectionRepository(private val dao: ConnectionDao) {
     suspend fun getByAddress(address: String): Connection? {
         Log.d(TAG, "GetByAddress: $address in ${Thread.currentThread()}")
         return dao.getByAddress(address)
+    }
+
+    suspend fun delete(connection: Connection) {
+        dao.delete(connection)
     }
 }

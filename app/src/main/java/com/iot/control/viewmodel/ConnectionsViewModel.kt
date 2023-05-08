@@ -1,15 +1,23 @@
 package com.iot.control.viewmodel
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.iot.control.infrastructure.DbContext
+import com.iot.control.infrastructure.mqtt.MqttBroker
+import com.iot.control.infrastructure.mqtt.MqttConnections
+import com.iot.control.infrastructure.repository.ConnectionRepository
+import com.iot.control.infrastructure.repository.DeviceRepository
+import com.iot.control.infrastructure.sms.SmsClient
 import com.iot.control.model.Connection
 import com.iot.control.model.enums.ConnectionType
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
+import javax.inject.Inject
 
 
 data class ConnectionDialogState(
@@ -22,15 +30,20 @@ data class ConnectionDialogState(
     val isSsl: Boolean = false,
     val type: ConnectionType = ConnectionType.MQTT)
 
-
 data class ConnectionsUiState(
     val connections: List<Connection> = emptyList(),
     val selectedConnectionID: UUID? = null,
     val isLoading: Boolean = false)
 
 
-class ConnectionsViewModel : ViewModel() {
-    private val connectionRep = DbContext.get().connectionRepository
+@HiltViewModel
+class ConnectionsViewModel @Inject constructor(
+    private val connectionRepository: ConnectionRepository,
+    private val deviceRepository: DeviceRepository,
+    private val mqttConnections: MqttConnections,
+    private val smsClient: SmsClient,
+    private val mqttBroker: MqttBroker
+) : ViewModel() {
 
     private val _dialogState = MutableStateFlow(ConnectionDialogState())
     val dialogState: StateFlow<ConnectionDialogState> = _dialogState.asStateFlow()
@@ -40,9 +53,18 @@ class ConnectionsViewModel : ViewModel() {
 
     init {
         viewModelScope.launch {
-            connectionRep.getAll().collect { connections ->
+            connectionRepository.getAll().collect { connections ->
                 _uiState.update { it.copy(connections = connections) }
             }
+        }
+    }
+
+    fun active(connection: Connection): Boolean {
+        return when(connection.type) {
+            ConnectionType.SMS -> smsClient.running
+            ConnectionType.LOCAL_MQTT -> mqttBroker.running && mqttBroker.has(connection.username)
+            ConnectionType.MQTT -> mqttConnections.running && mqttConnections.has(connection.address)
+            else -> false
         }
     }
 
@@ -92,21 +114,20 @@ class ConnectionsViewModel : ViewModel() {
 
         viewModelScope.launch {
             if(uiState.value.selectedConnectionID == null)
-                connectionRep.add(connection)
+                connectionRepository.add(connection)
             else
-                connectionRep.update(connection)
+                connectionRepository.update(connection)
         }
     }
 
-    fun deleteConnection(connection: Connection) {}
+    fun deleteConnection(connection: Connection) {
+        viewModelScope.launch {
+            connectionRepository.delete(connection)
+            deviceRepository.deleteWidows()
+        }
+    }
 
     companion object {
         const val TAG = "ConnectionViewModel"
-        fun provideFactory(): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return ConnectionsViewModel() as T
-            }
-        }
     }
 }

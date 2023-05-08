@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -18,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.iot.control.R
 import com.iot.control.model.enums.ConnectionType
 import com.iot.control.ui.theme.IotControlTheme
+import com.iot.control.ui.utils.TopBarDialog
 import com.iot.control.viewmodel.ConnectionDialogState
 
 
@@ -28,44 +31,45 @@ fun ConnectionDialog(
     saveConnection: () -> Unit,
     openDialog: MutableState<Boolean>,
     modifier: Modifier
-)
-{
+) {
+    TopBarDialog(title = stringResource(R.string.new_connection_label), close = { openDialog.value = false }, save = saveConnection) {
+        ConnectionDialogBody(
+            dialogState = dialogState,
+            onUpdate = onUpdate,
+            modifier = modifier
+        )
+    }
+}
+
+
+@Composable
+fun ConnectionDialogBody(
+    dialogState: ConnectionDialogState,
+    onUpdate: (ConnectionDialogState) -> Unit,
+    modifier: Modifier
+) {
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large
     ) {
-    Column(
-        modifier = Modifier.padding(horizontal = 30.dp, vertical = 10.dp) ,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(5.dp)
-    ) {
-        OutlinedTextField(
-            value = dialogState.name,
-            onValueChange = { onUpdate(dialogState.copy(name = it)) },
-            label = { Text("Name") }
-        )
+        Column(
+            modifier = Modifier.padding(horizontal = 30.dp, vertical = 10.dp) ,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            OutlinedTextField(
+                value = dialogState.name,
+                onValueChange = { onUpdate(dialogState.copy(name = it)) },
+                label = { Text(stringResource(R.string.name_label)) }
+            )
 
-        ConnectionTypeToggleButton(dialogState, onUpdate)
+            ConnectionTypeToggleButton(dialogState, onUpdate)
 
-        if(dialogState.type == ConnectionType.MQTT) MqttFields(dialogState, onUpdate)
-        if(dialogState.type >= ConnectionType.MQTT) GenericMqttFields(dialogState, onUpdate)
-        if(dialogState.type == ConnectionType.SMS) SmsFields(dialogState, onUpdate)
+            if(dialogState.type == ConnectionType.MQTT) MqttFields(dialogState, onUpdate)
+            if(dialogState.type >= ConnectionType.MQTT) GenericMqttFields(dialogState, onUpdate)
+            if(dialogState.type == ConnectionType.SMS) SmsFields(dialogState, onUpdate)
 
-        Row(horizontalArrangement = Arrangement.SpaceBetween) {
-            TextButton(onClick = { openDialog.value = false }) {
-                Text(stringResource(R.string.cancel_label))
-            }
-
-            TextButton(
-                onClick = {
-                    saveConnection()
-                    openDialog.value = false
-                }
-            ) {
-                Text(stringResource(R.string.save_label))
-            }
-        }
-    }}
+        }}
 }
 
 @Composable

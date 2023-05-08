@@ -3,8 +3,12 @@ package com.iot.control.infrastructure
 import android.content.Context
 import androidx.room.Room
 import com.iot.control.infrastructure.repository.*
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class DbContext private constructor(context: Context) {
+//@Singleton
+class DbContext(val context: Context) {//@Inject constructor(@ApplicationContext context: Context) {
 
     private val database: ApplicationDatabase = Room.databaseBuilder(
         context.applicationContext,
@@ -33,6 +37,10 @@ class DbContext private constructor(context: Context) {
         const val DATABASE_NAME = "IotDb"
 
         private var INSTANCE: DbContext? = null
+
+        fun provide(context: Context): DbContext {
+            return DbContext(context)
+        }
 
         fun initialize(context: Context) {
             INSTANCE = INSTANCE ?: DbContext(context)

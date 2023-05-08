@@ -4,16 +4,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.iot.control.infrastructure.DbContext
+import com.iot.control.infrastructure.repository.DeviceRepository
 import com.iot.control.model.Device
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class DashboardUiState(
     val devices: List<Device> = emptyList()
 )
 
-class DashboardViewModel : ViewModel() {
-    private val deviceRepository = DbContext.get().deviceRepository
+@HiltViewModel
+class DashboardViewModel @Inject constructor(
+    private val deviceRepository: DeviceRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
@@ -28,11 +33,5 @@ class DashboardViewModel : ViewModel() {
 
     companion object {
         const val TAG = "DashboardViewModel"
-        fun provideFactory(): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return DashboardViewModel() as T
-            }
-        }
     }
 }

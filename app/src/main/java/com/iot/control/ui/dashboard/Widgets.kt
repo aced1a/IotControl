@@ -84,16 +84,6 @@ fun StateWidget(device: Device)
     }
 }
 
-@Preview
-@Composable
-fun PreviewStateWidget()
-{
-    IotControlTheme {
-        StateWidget(Device(name = "Kitchen light", value="On"))
-    }
-}
-
-
 @Composable
 fun SwitchWidget(device: Device)
 {

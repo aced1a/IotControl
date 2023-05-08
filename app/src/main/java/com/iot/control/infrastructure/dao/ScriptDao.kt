@@ -16,6 +16,9 @@ interface ScriptDao {
     @Query("SELECT * FROM script WHERE event_id = (:id)")
     suspend fun getByEventId(id: UUID): List<Script>
 
+    @Query("SELECT * FROM script WHERE timer_id = (:id)")
+    suspend fun getByTimerId(id: UUID): List<Script>
+
     @Insert
     suspend fun add(script: Script)
 

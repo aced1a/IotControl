@@ -1,7 +1,5 @@
 package com.iot.control.ui.devices
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,8 +13,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iot.control.R
+import com.iot.control.model.Device
 import com.iot.control.model.enums.DeviceType
 import com.iot.control.ui.dashboard.WidgetIcon
+import com.iot.control.ui.utils.TopBarDialog
+import com.iot.control.viewmodel.DeviceDetailUiState
 import com.iot.control.viewmodel.DeviceDetailViewModel
 import com.iot.control.viewmodel.DialogUiState
 
@@ -27,18 +28,77 @@ fun DeviceDialog(
     modifier: Modifier = Modifier,
     back: () -> Unit
 ) {
-    val uiState by deviceDetailViewModel.uiState.collectAsStateWithLifecycle()
-    val dialogState by deviceDetailViewModel.dialogState.collectAsStateWithLifecycle()
+    TopBarDialog(
+        title = stringResource(R.string.new_device_label),
+        close = back,
+        save = {
+            deviceDetailViewModel.save()
+            back()
+    }) {
+        val uiState by deviceDetailViewModel.uiState.collectAsStateWithLifecycle()
+        val dialogState by deviceDetailViewModel.dialogState.collectAsStateWithLifecycle()
+        val dialogVisible = remember { mutableStateOf(false) }
+        var isCommandDialog by remember { mutableStateOf(true) }
 
-    val commandListVisible = remember { mutableStateOf(false) }
-    val eventListVisible = remember { mutableStateOf(false) }
 
+        DeviceDialogBody(
+            uiState,
+            deviceDetailViewModel::updateUiState,
+            modifier,
+            eventList = {
+                EventList(
+                    events = uiState.events,
+                    editEvent = {
+                        deviceDetailViewModel.editEvent(it)
+                        dialogVisible.value = true
+                        isCommandDialog = false
+                    }, addEvent = {
+                        deviceDetailViewModel.newEvent(it)
+                        dialogVisible.value = true
+                        isCommandDialog = false
+                    }
+                )
+            },
+            commandList = {
+                CommandList(
+                    commands = uiState.commands,
+                    editCommand = {
+                        deviceDetailViewModel.editCommand(it)
+                        dialogVisible.value = true
+                        isCommandDialog = true
+                    },
+                    addCommand = {
+                        deviceDetailViewModel.newCommand(it)
+                        dialogVisible.value = true
+                        isCommandDialog = true
+                    }
+                )
+            }
+        )
+
+        if(dialogVisible.value) CallDialog(
+            dialogState,
+            dialogVisible,
+            deviceDetailViewModel::updateDialogState) {
+                if(isCommandDialog)
+                    deviceDetailViewModel.saveCommand()
+                else
+                    deviceDetailViewModel.saveEvent()
+                dialogVisible.value = dialogVisible.value.not()
+        }
+
+    }
+}
+
+@Composable
+fun DeviceDialogBody(
+    uiState: DeviceDetailUiState,
+    update: (DeviceDetailUiState) -> Unit,
+    modifier: Modifier = Modifier,
+    eventList: @Composable () -> Unit,
+    commandList: @Composable () -> Unit
+) {
     val selectTypeDialogVisible = remember { mutableStateOf(false) }
-    val dialogVisible = remember { mutableStateOf(false) }
-
-    val isCommandDialog = remember { mutableStateOf(true) }
-
-    val update = deviceDetailViewModel::updateUiState
 
     Surface(
         modifier = modifier,
@@ -54,7 +114,10 @@ fun DeviceDialog(
             OutlinedTextField(
                 value = uiState.name,
                 onValueChange = { update(uiState.copy(name = it)) },
-                label = { Text("Name") }
+                label = { Text(stringResource(R.string.name_label)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 25.dp)
             )
 
             DeviceTypeItem(
@@ -66,64 +129,12 @@ fun DeviceDialog(
                 callback = { selectTypeDialogVisible.value = true }
             )
 
-            CommandList(
-                uiState.commands,
-                commandListVisible,
-                {
-                    deviceDetailViewModel.editCommand(it)
-                    dialogVisible.value = true
-                    isCommandDialog.value = true
-                },
-                {
-                    deviceDetailViewModel.newCommand(it)
-                    dialogVisible.value = true
-                    isCommandDialog.value = true
-                })
-
-            EventList(
-                events = uiState.events,
-                visible = eventListVisible,
-                editEvent = {
-                    deviceDetailViewModel.editEvent(it)
-                    dialogVisible.value = true
-                    isCommandDialog.value = false },
-                addEvent = {
-                    deviceDetailViewModel.newEvent(it)
-                    dialogVisible.value = true
-                    isCommandDialog.value = false }
-            )
-
-            Row {
-                TextButton(
-                    onClick = { back() }
-                ) {
-                    Text(stringResource(R.string.cancel_label))
-                }
-
-                TextButton(
-                    onClick = {
-                        deviceDetailViewModel.save()
-                        back()
-                    }
-                ) {
-                    Text(stringResource(R.string.save_label))
-                }
-            }
+            commandList()
+            eventList()
 
             if(selectTypeDialogVisible.value)
                 CallSelectDeviceTypeDialog(selectTypeDialogVisible) {
                     update(uiState.copy(type = it))
-                }
-
-            if(dialogVisible.value) CallDialog(
-                dialogState,
-                dialogVisible,
-                deviceDetailViewModel::updateDialogState) {
-                    if(isCommandDialog.value)
-                        deviceDetailViewModel.saveCommand()
-                    else
-                        deviceDetailViewModel.saveEvent()
-                    dialogVisible.value = dialogVisible.value.not()
                 }
         }
     }
@@ -149,12 +160,13 @@ fun CallDialog(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CallSelectDeviceTypeDialog(
     visible: MutableState<Boolean>,
     callback: (DeviceType) -> Unit
 ) {
-    Dialog(
+    ModalBottomSheet(
         onDismissRequest = { visible.value = false },
         //properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {

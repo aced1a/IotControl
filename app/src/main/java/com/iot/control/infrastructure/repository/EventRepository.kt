@@ -8,6 +8,8 @@ class EventRepository(private val dao: EventDao) {
 
     suspend fun getById(id: UUID) = dao.getById(id)
 
+    suspend fun getByDeviceId(id: UUID) = dao.getByDeviceId(id)
+
     suspend fun getByMqttEventPayload(connectionId: UUID, topic: String, payload: String)
         = dao.getByMqttEventPayload(connectionId, topic, payload)
 
@@ -16,6 +18,8 @@ class EventRepository(private val dao: EventDao) {
 
     suspend fun getBySmsEvent(connectionId: UUID, address: String, payload: String)
         = dao.getBySmsEvent(connectionId, address, payload)
+
+    suspend fun getByConnectionId(connectionId: UUID) = dao.getByConnectionId(connectionId)
 
     suspend fun getByConnectionIdAndDeviceID(connectionId: UUID, deviceId: UUID)
         = dao.getByConnectionIdAndDeviceId(connectionId, deviceId)

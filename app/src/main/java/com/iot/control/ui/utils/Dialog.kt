@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import com.iot.control.R
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -14,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.iot.control.ui.connections.ConnectionDialogBody
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,4 +52,45 @@ fun SimpleTextDialog(
         }
     }
 
+}
+
+
+@Composable
+fun TopBarDialog(
+    title: String,
+    close: () -> Unit,
+    save: () -> Unit,
+    content: @Composable () -> Unit
+){
+    Scaffold(
+        topBar = {
+            ConnectionDialogTopBar(title = title, close = close, save = save)
+        }
+    ) {
+        Column(modifier = Modifier.padding(it)) {
+            content()
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ConnectionDialogTopBar(
+    title: String,
+    close: () -> Unit,
+    save: () -> Unit
+) {
+    CenterAlignedTopAppBar(
+        title = { Text(title) },
+        navigationIcon = {
+            IconButton(onClick = close) {
+                Icon(imageVector = Icons.Filled.Close, contentDescription = "Close dialog")
+            }
+        },
+        actions = {
+            TextButton(onClick = save) {
+                Text(stringResource(R.string.save_label))
+            }
+        }
+    )
 }

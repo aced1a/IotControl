@@ -19,4 +19,6 @@ class CommandRepository(private val dao: CommandDao) {
 
     suspend fun update(command: Command) = dao.update(command)
 
+    suspend fun delete(command: Command) = dao.delete(command)
+
 }

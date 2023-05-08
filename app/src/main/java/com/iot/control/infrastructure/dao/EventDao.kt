@@ -12,14 +12,20 @@ interface EventDao {
     @Query("SELECT * FROM event WHERE id = (:id)")
     suspend fun getById(id: UUID): Event?
 
+    @Query("SELECT * FROM event WHERE device_id = (:id)")
+    suspend fun getByDeviceId(id: UUID): List<Event>
+
     @Query("SELECT * FROM event WHERE connection_id = (:connectionId) AND topic = (:topic) AND payload = (:payload)")
     suspend fun getByMqttEventPayload(connectionId: UUID, topic: String, payload: String): List<Event>
 
-    @Query("SELECT * FROM event WHERE connection_id = (:connectionId) AND topic = (:topic) AND is_json = true ")
+    @Query("SELECT * FROM event WHERE connection_id = (:connectionId) AND topic = (:topic) AND is_json = 1")
     suspend fun getByMqttEventJson(connectionId: UUID, topic: String): List<Event>
 
     @Query("SELECT * FROM event WHERE connection_id = (:connectionId) AND topic = (:address) AND payload = (:payload)")
     suspend fun getBySmsEvent(connectionId: UUID, address: String, payload: String): List<Event>
+
+    @Query("SELECT * FROM event WHERE connection_id = (:connectionId)")
+    suspend fun getByConnectionId(connectionId: UUID): List<Event>
 
     @Query("SELECT * FROM event WHERE connection_id = (:connectionId) AND device_id = (:deviceId)")
     suspend fun getByConnectionIdAndDeviceId(connectionId: UUID, deviceId: UUID): List<Event>

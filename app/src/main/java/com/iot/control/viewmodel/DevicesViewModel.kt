@@ -1,16 +1,22 @@
 package com.iot.control.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import com.iot.control.model.Device
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.iot.control.infrastructure.DbContext
+import com.iot.control.infrastructure.repository.ConnectionRepository
+import com.iot.control.infrastructure.repository.DeviceRepository
 import com.iot.control.model.Connection
 import com.iot.control.model.enums.ConnectionType
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.lang.IllegalArgumentException
 import java.util.UUID
+import javax.inject.Inject
 
 
 data class DevicesUiState(
@@ -24,11 +30,15 @@ data class SelectDeviceUiState(
     val type: ConnectionType = ConnectionType.MQTT
 )
 
-class DevicesViewModel(val connectionId: UUID) : ViewModel() {
-    private val devicesRep = DbContext.get().deviceRepository
-    private val connectionRep = DbContext.get().connectionRepository
+@HiltViewModel
+class DevicesViewModel @Inject constructor(
+    private val deviceRepository: DeviceRepository,
+    private val connectionRepository: ConnectionRepository,
+    private val savedStateHandle: SavedStateHandle
+) : ViewModel() {
 
     private lateinit var connection: Connection
+    val connectionId: UUID = UUID.fromString(savedStateHandle.get<String>("connectionId").orEmpty())
 
     private val _uiState = MutableStateFlow(DevicesUiState())
     val uiState: StateFlow<DevicesUiState> = _uiState.asStateFlow()
@@ -38,9 +48,9 @@ class DevicesViewModel(val connectionId: UUID) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            connection = connectionRep.getById(connectionId) ?: Connection()
+            connection = connectionRepository.getById(connectionId) ?: throw IllegalArgumentException("Connection doesn't exist")
 
-            devicesRep.getByConnectionId(connectionId).collect { devices ->
+            deviceRepository.getByConnectionId(connectionId).collect { devices ->
                 _uiState.update { it.copy(devices = devices) }
             }
         }
@@ -53,14 +63,14 @@ class DevicesViewModel(val connectionId: UUID) : ViewModel() {
                                 else
                                     device.copy(smsConnectionId = connectionId)
 
-            devicesRep.update(updatedDevice)
+            deviceRepository.update(updatedDevice)
         }
     }
 
     fun loadExistingDevices() {
         //TODO("Refactor")
         viewModelScope.launch {
-            val devices = devicesRep.getAll()
+            val devices = deviceRepository.getAll()
             val filter: (Device) -> Boolean =
                 if(connection.type.value() == ConnectionType.MQTT)
                     { device -> device.mqttConnectionId == null }
@@ -83,13 +93,19 @@ class DevicesViewModel(val connectionId: UUID) : ViewModel() {
         }
     }
 
+    fun delete(device: Device) {
+        viewModelScope.launch {
+            deviceRepository.delete(device)
+        }
+    }
+
     companion object {
         const val TAG = "DevicesViewModel"
-        fun provideFactory(connectionId: UUID): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return DevicesViewModel(connectionId) as T
-            }
-        }
+//        fun provideFactory(connectionId: UUID): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+//            @Suppress("UNCHECKED_CAST")
+//            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+//                return DevicesViewModel(connectionId) as T
+//            }
+//        }
     }
 }
