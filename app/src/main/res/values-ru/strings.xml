@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">IotControl</string>
+    <string name="dashboard">Панель</string>
+    <string name="connections"> Подключения </string>
+    <string name="scripts">Сценарии</string>
+    <string name="settings">Настройки</string>
+
+    <string name="on_command">Включить</string>
+    <string name="off_command">Выключить</string>
+    <string name="sync_command">Синхронизировать</string>
+    <string name="set_command">Задать</string>
+
+    <string name="on_event">Включить</string>
+    <string name="off_event">Выключить</string>
+    <string name="set_event">Задать</string>
+    <string name="inverse_event">Инвертировать</string>
+    <string name="click_event">Нажатие</string>
+    <string name="dclick_event">Двойное нажатие</string>
+
+    <string name="mqtt_label">MQTT</string>
+    <string name="local_mqtt_label">MQTT</string>
+    <string name="sms_label">SMS</string>
+
+    <string name="local_label">Брокер</string>
+    <string name="ssl_label">Защищенное</string>
+    <string name="anon_label">Анонимное</string>
+    <string name="credentials_label">С реквизитами</string>
+
+    <string name="connected_label"> Подключение </string>
+    <string name="disconnected_label"> Отключение </string>
+    <string name="reconnection_label"> Переподключение </string>
+
+    <string name="new_event_text"> Новое событие </string>
+    <string name="connected_text"> Подключено к %1$s </string>
+    <string name="disconnected_text"> Отключено от %1$s </string>
+    <string name="reconnection_text"> Переподключение к %1$s </string>
+    <string name="failed_connection_text"> Неудалось подключиться к %1$s </string>
+
+
+    <string name="failed_connection_label"> Подключение не удалось </string>
+    <string name="new_connection_label"> Новое подключение </string>
+    <string name="new_device_label"> Новое устройство </string>
+    <string name="new_script_label"> Новый сценарий </string>
+
+    <string name="commands_label"> Команды </string>
+    <string name="events_label"> События </string>
+    <string name="event_label"> Событие </string>
+    <string name="device_label"> Устройство </string>
+
+    <string name="json_options"> Настройка Json </string>
+    <string name="notify_options"> Настройка уведомлений </string>
+
+    <string name="add_new_command"> Добавить команду: %1$s </string>
+    <string name="add_new_event"> Добавть событие: %1$s </string>
+    <string name="action_label"> Действие </string>
+    <string name="guard_label"> Условие </string>
+
+    <string name="source_device_label"> Источник </string>
+    <string name="target_device_label"> Целевое устройство </string>
+
+    <string name="not_selected"> Не выбрано </string>
+    <string name="devices_without"> Устройства без %1$s подключения </string>
+    <string name="devices_other"> Остальные устройства </string>
+    <string name="no_devices_found"> Устройства не найдены </string>
+    <string name="change_connection"> Изменить подключение для устройства? </string>
+
+    <string name="name_label">Имя</string>
+    <string name="ip_label">Ip</string>
+    <string name="port_label">Порт</string>
+    <string name="number_label">Номер</string>
+    <string name="username_label">Имя пользователя</string>
+    <string name="password_label">Пароль</string>
+    <string name="parser_label">Парсер</string>
+    <string name="topic_label"> Топик </string>
+    <string name="payload_label"> Нагрузка </string>
+    <string name="data_field_label"> Поле данных </string>
+
+    <string name="ssl_switcher_label">SSL</string>
+
+    <string name="displayable_label">Отображаемое</string>
+
+    <string name="cancel_label">Отмена</string>
+    <string name="save_label">Сохранить</string>
+    <string name="edit_label">Изменить</string>
+    <string name="delete_label">Удалить</string>
+    <string name="accept_label">Принять</string>
+
+    <string name="device_list_text">Открыть список устройств</string>
+    <string name="json_payload_text">Нагрузка это json</string>
+
+    <string name="light_type_label">Лампочка</string>
+    <string name="dimlight_type_label">Лампочка с диммированием</string>
+    <string name="button_type_label">Кнопка</string>
+    <string name="switch_type_label">Переподключение</string>
+    <string name="state_type_label">Состояние</string>
+
+    <string name="json_label">Json</string>
+    <string name="plain_label">Текст</string>
+
+    <string name="enable_mqtt_text">Включить MQTT клиент</string>
+    <string name="enable_broker_text">Включить MQTT брокер</string>
+    <string name="enable_sms_text">Включить SMS клиент</string>
+
+    <string name="enable_notification"> Включить уведомления </string>
+    <string name="notification_label"> Уведомление </string>
+
+    <string name="select_mqtt_version"> Версия MQTT </string>
+    <string name="mqtt_v3"> MQTT 3.1.1 </string>
+    <string name="mqtt_v5"> MQTT 5 </string>
+
+    <string name="en"> Английский </string>
+    <string name="ru"> Русский </string>
+</resources>

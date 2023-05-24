@@ -11,15 +11,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iot.control.R
-import com.iot.control.model.Device
 import com.iot.control.model.enums.DeviceType
 import com.iot.control.ui.dashboard.WidgetIcon
 import com.iot.control.ui.utils.TopBarDialog
 import com.iot.control.viewmodel.DeviceDetailUiState
 import com.iot.control.viewmodel.DeviceDetailViewModel
-import com.iot.control.viewmodel.DialogUiState
 
 
 @Composable
@@ -37,8 +36,9 @@ fun DeviceDialog(
     }) {
         val uiState by deviceDetailViewModel.uiState.collectAsStateWithLifecycle()
         val dialogState by deviceDetailViewModel.dialogState.collectAsStateWithLifecycle()
-        val dialogVisible = remember { mutableStateOf(false) }
-        var isCommandDialog by remember { mutableStateOf(true) }
+
+        val commandDialog = remember { mutableStateOf(false) }
+        val eventDialog = remember { mutableStateOf(false) }
 
 
         DeviceDialogBody(
@@ -50,12 +50,11 @@ fun DeviceDialog(
                     events = uiState.events,
                     editEvent = {
                         deviceDetailViewModel.editEvent(it)
-                        dialogVisible.value = true
-                        isCommandDialog = false
+                        eventDialog.value = true
+
                     }, addEvent = {
                         deviceDetailViewModel.newEvent(it)
-                        dialogVisible.value = true
-                        isCommandDialog = false
+                        eventDialog.value = true
                     }
                 )
             },
@@ -64,29 +63,40 @@ fun DeviceDialog(
                     commands = uiState.commands,
                     editCommand = {
                         deviceDetailViewModel.editCommand(it)
-                        dialogVisible.value = true
-                        isCommandDialog = true
+                        commandDialog.value = true
                     },
                     addCommand = {
                         deviceDetailViewModel.newCommand(it)
-                        dialogVisible.value = true
-                        isCommandDialog = true
+                        commandDialog.value = true
                     }
                 )
             }
         )
 
-        if(dialogVisible.value) CallDialog(
-            dialogState,
-            dialogVisible,
-            deviceDetailViewModel::updateDialogState) {
-                if(isCommandDialog)
+        if(commandDialog.value) CallDialog(commandDialog) {
+            CommandDialog(
+                dialogState,
+                stringResource(R.string.add_new_command, ""),
+                deviceDetailViewModel::updateDialogState ,
+                save = {
                     deviceDetailViewModel.saveCommand()
-                else
-                    deviceDetailViewModel.saveEvent()
-                dialogVisible.value = dialogVisible.value.not()
+                    commandDialog.value = false
+                },
+                cancel = { commandDialog.value = false }
+            )
         }
-
+        if(eventDialog.value) CallDialog(eventDialog) {
+            EventDialog(
+                dialogState,
+                stringResource(R.string.add_new_event, ""),
+                deviceDetailViewModel::updateDialogState ,
+                save = {
+                    deviceDetailViewModel.saveEvent()
+                    eventDialog.value = false
+                },
+                cancel = { eventDialog.value = false }
+            )
+        }
     }
 }
 
@@ -140,23 +150,17 @@ fun DeviceDialogBody(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun CallDialog(
-    dialogState: DialogUiState,
     openDialog: MutableState<Boolean>,
-    update: (DialogUiState) -> Unit,
-    save: () -> Unit
+    dialog: @Composable () -> Unit
 ) {
-    ModalBottomSheet(
-        onDismissRequest = { openDialog.value = false}
+    Dialog(
+        onDismissRequest = { openDialog.value = false},
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        DetailDataDialog(
-            dialogState,
-            update = update,
-            save = save,
-            cancel = { openDialog.value = false }
-        )
+        dialog()
     }
 }
 

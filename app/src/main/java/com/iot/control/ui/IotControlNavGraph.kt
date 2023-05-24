@@ -16,6 +16,7 @@ import com.iot.control.ui.scripts.ScriptScreen
 import com.iot.control.viewmodel.*
 import androidx.activity.viewModels
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.iot.control.ui.settings.SettingsScreen
 import java.util.UUID
 
 @Composable
@@ -40,7 +41,10 @@ fun IotControlNavGraph(
             val scriptViewModel = hiltViewModel<ScriptViewModel>()
             ScriptScreen(scriptViewModel)
         }
-        composable(IotControlNavigation.SETTINGS) {}
+        composable(IotControlNavigation.SETTINGS) {
+            val settingsViewModel = hiltViewModel<SettingsViewModel>()
+            SettingsScreen(settingsViewModel)
+        }
 
         composable(
             "${IotControlNavigation.DEVICES}/{connectionId}",

@@ -10,16 +10,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.iot.control.R
 import com.iot.control.model.Device
+import com.iot.control.model.enums.CommandAction
 import com.iot.control.model.enums.DeviceType
 import com.iot.control.ui.theme.IotControlTheme
 
 
 @Composable
-fun Widget(device: Device) {
+fun Widget(device: Device, send: (CommandAction) -> Unit) {
     when(device.type) {
-        DeviceType.Light -> LightWidget(device)
+        DeviceType.Light -> LightWidget(device, send)
         DeviceType.State -> StateWidget(device)
-        DeviceType.Switch -> SwitchWidget(device)
+        DeviceType.Switch -> SwitchWidget(device, send)
         else -> {}
     }
 }
@@ -50,7 +51,7 @@ fun DefaultWidget(
 }
 
 @Composable
-fun LightWidget(device: Device) {
+fun LightWidget(device: Device, send: (CommandAction) -> Unit) {
     DefaultWidget(device.name) {
         Icon(
             painter = painterResource(R.drawable.baseline_lightbulb_60), null,
@@ -59,10 +60,13 @@ fun LightWidget(device: Device) {
                 .padding(all = 10.dp)
                 .align(Alignment.CenterHorizontally)
         )
-
+        //TODO refactor value checking
         Switch(
-            checked = false,
-            onCheckedChange = {},
+            checked = device.value == Device.ON,
+            onCheckedChange = {
+                if(it) send(CommandAction.ON)
+                else send(CommandAction.OFF)
+            },
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
     }
@@ -85,7 +89,7 @@ fun StateWidget(device: Device)
 }
 
 @Composable
-fun SwitchWidget(device: Device)
+fun SwitchWidget(device: Device, send: (CommandAction) -> Unit)
 {
     DefaultWidget(name = device.name) {
         Text(
@@ -98,7 +102,10 @@ fun SwitchWidget(device: Device)
 
         Switch(
             checked = false,
-            onCheckedChange = {},
+            onCheckedChange = {
+                if(it) send(CommandAction.ON)
+                else send(CommandAction.OFF)
+            },
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
     }

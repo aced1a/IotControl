@@ -6,23 +6,28 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Binder
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.iot.control.BuildConfig
+import com.iot.control.DatabaseModule
+import com.iot.control.infrastructure.Notification as MyNotification
+
 import com.iot.control.R
-import com.iot.control.infrastructure.mqtt.MqttBroker
+import com.iot.control.infrastructure.mqtt.broker.MqttBroker
 import com.iot.control.infrastructure.mqtt.MqttConnections
+import com.iot.control.infrastructure.mqtt.broker.BrokerAuthenticator
+import com.iot.control.infrastructure.repository.ConnectionRepository
 import com.iot.control.infrastructure.sms.SmsClient
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -47,7 +52,7 @@ class IotService : LifecycleService() {
     private var bindCount = 0
 
     private val isBound get() = bindCount > 0
-
+    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
@@ -65,8 +70,13 @@ class IotService : LifecycleService() {
             Log.d(TAG, "Start service")
             started = true
 
+            setWakeLock()
+            createNotificationChannel()
+
             lifecycleScope.launch {
+                BrokerAuthenticator.init(ConnectionRepository(database.connectionDao()))
                 mqttConnections.start()
+                mqttBroker.setup(this@IotService)
                 smsClient.start(this@IotService)
                 timerManager.init()
             }
@@ -79,6 +89,13 @@ class IotService : LifecycleService() {
         manageLifetime()
 
         return START_STICKY
+    }
+
+    private fun setWakeLock() {
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.WAKE_LOCK) == PackageManager.PERMISSION_GRANTED)
+            wakeLock = (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
+                newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "IotService::lock").apply { acquire() }
+            }
     }
 
     override fun onBind(intent: Intent): IBinder {
@@ -109,7 +126,7 @@ class IotService : LifecycleService() {
         when {
             isBound -> exitForeground()
             mqttConnections.running || mqttBroker.running || smsClient.running -> enterForeground()
-            else -> stopSelf()
+            else -> stopService()
         }
     }
 
@@ -128,10 +145,17 @@ class IotService : LifecycleService() {
         }
     }
 
+    private fun stopService() {
+        wakeLock?.let {
+            if(it.isHeld) it.release()
+        }
+        stopSelf()
+    }
+
     private fun showForegroundNotification() {
         if(isForeground.not()) return
 
-        createNotificationChannel()
+//        createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildForegroundNotification())
     }
 
@@ -162,8 +186,8 @@ class IotService : LifecycleService() {
         )
 
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .setContentTitle("Notification")
-            .setContentText("Running")
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText("Tap to open application")
             .setContentIntent(pendingIntent)
             .setSmallIcon(R.drawable.baseline_lightbulb_48)
             .addAction(R.drawable.baseline_switch_left_12, getString(R.string.cancel_label), stopIntent)
@@ -175,15 +199,19 @@ class IotService : LifecycleService() {
         //TODO("replace string to res id")
     }
 
-    private fun showNotification(notification: com.iot.control.infrastructure.Notification){
+    private fun showNotification(notification: MyNotification){
         if(
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
             && notification.id != 0
         ) {
+
+            val title = getNotificationTitle(notification)
+            val message = getNotificationContent(notification)
+
             val builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-                .setSmallIcon(androidx.core.R.drawable.notification_icon_background)
-                .setContentTitle(notification.title)
-                .setContentText(notification.content)
+                .setSmallIcon(R.drawable.baseline_lightbulb_48)
+                .setContentTitle(title)
+                .setContentText(message)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
             with(NotificationManagerCompat.from(this)) {
@@ -192,12 +220,22 @@ class IotService : LifecycleService() {
         }
     }
 
+    private fun getNotificationTitle(notification: MyNotification): String {
+        Log.d(TAG, "Try get string resource ${notification.titleRes}")
+
+        return notification.title ?: getString(notification.titleRes)
+    }
+
+    private fun getNotificationContent(notification: MyNotification): String {
+        return notification.content ?: if(notification.arg != null) getString(notification.contentRes, notification.arg) else getString(notification.contentRes)
+    }
+
 
     private companion object {
         const val TAG = "IotService"
         const val NOTIFICATION_ID = 1
         const val NOTIFICATION_CHANNEL_ID = "IotService"
-        const val UNBIND_DELAY_MILLIS = 2000L
+        const val UNBIND_DELAY_MILLIS = 1500L
         const val ACTION_STOP = BuildConfig.APPLICATION_ID + ".ACTION_STOP"
     }
 

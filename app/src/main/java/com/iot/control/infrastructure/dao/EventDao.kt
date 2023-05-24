@@ -32,7 +32,7 @@ interface EventDao {
 
     @Query("""
         SELECT * FROM (
-	        SELECT event.id AS id, device.name AS name, event.type AS type FROM event
+	        SELECT event.id AS id, device.id AS deviceId, device.name AS name, event.type AS type FROM event
 	        INNER JOIN device ON event.device_id = device.id) dto, script
         WHERE dto.id = script.event_id
     """)

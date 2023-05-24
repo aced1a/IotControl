@@ -69,6 +69,7 @@ fun DropdownMenuField(
     label: String,
     value: String,
     expanded: MutableState<Boolean>,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     ExposedDropdownMenuBox(
@@ -79,9 +80,8 @@ fun DropdownMenuField(
     ) {
         OutlinedTextField(
             value,
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth(),
+            modifier = modifier
+                .menuAnchor(),
             readOnly = true,
             label = { Text(label) },
             trailingIcon = {

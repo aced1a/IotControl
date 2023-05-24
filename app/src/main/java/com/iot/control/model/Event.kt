@@ -15,9 +15,11 @@ data class Event(@PrimaryKey val id: UUID = UUID.randomUUID(),
                  val topic: String,
                  val payload: String,
                  val type: EventType,
+                 val notify: Boolean,
+                 val notification: String?,
                  @ColumnInfo(name = "is_sync") val isSync: Boolean,
                  @ColumnInfo(name = "is_json") var isJson: Boolean,
-                 @ColumnInfo(name = "data_field") var dataField: String?,
+                 @ColumnInfo(name = "data_field") val dataField: String?,
                  @ColumnInfo(name = "connection_id", index=true) val connectionId: UUID,
                  @ColumnInfo(name = "device_id", index=true) val deviceId: UUID) {
 
@@ -31,7 +33,9 @@ data class Event(@PrimaryKey val id: UUID = UUID.randomUUID(),
                 isJson = false,
                 dataField = null,
                 connectionId = UUID.randomUUID(),
-                deviceId = UUID.randomUUID()
+                deviceId = UUID.randomUUID(),
+                notify = true,
+                notification = null
             )
         }
     }

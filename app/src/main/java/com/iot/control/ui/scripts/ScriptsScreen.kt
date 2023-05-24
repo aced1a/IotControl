@@ -90,7 +90,7 @@ fun NewScriptFab(
             newScript()
             openDialog.value = true
         },
-        modifier = Modifier.offset(x = (-10).dp, y = (-80).dp)
+        modifier = Modifier.offset(x = (-10).dp, y = (-10).dp)
     ) {
         Icon(Icons.Filled.Add, "Add icon")
     }
@@ -157,7 +157,7 @@ fun TriggerItem(
 
         if(expanded) {
             ScriptList(scripts, getName) {
-                select(trigger.id, it)
+                select(trigger.deviceId, it)
             }
         }
     }

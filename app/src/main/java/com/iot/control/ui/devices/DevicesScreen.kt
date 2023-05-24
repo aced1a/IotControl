@@ -79,14 +79,14 @@ fun NewDeviceExtendedFab(
             FloatingActionButton(
                 onClick = newDevice,
                 modifier = Modifier
-                    .offset(x = (-60).dp, y = (-70).dp)
+                    .offset(x = (-60).dp, y = (-5).dp)
                     .size(40.dp)
             ) { Icon(painterResource(R.drawable.baseline_add_12), null) }
 
             FloatingActionButton(
                 onClick = selectDevice,
                 modifier = Modifier
-                    .offset(x = (0).dp, y = (-130).dp)
+                    .offset(x = (-5).dp, y = (-60).dp)
                     .size(40.dp)
             ) { Icon(painterResource(R.drawable.baseline_search_12), null) }
         }
@@ -96,7 +96,7 @@ fun NewDeviceExtendedFab(
                 expanded.value = expanded.value.not()
             },
             modifier = Modifier
-                .offset(x = (-10).dp, y = (-80).dp)
+                .offset(x = (-10).dp, y = (-10).dp)
                 .align(Alignment.BottomEnd)
         ) {
             Icon(Icons.Filled.Add, null)

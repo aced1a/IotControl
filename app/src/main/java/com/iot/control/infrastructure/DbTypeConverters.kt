@@ -2,6 +2,7 @@ package com.iot.control.infrastructure
 
 import androidx.room.TypeConverter
 import com.iot.control.model.enums.CommandAction
+import com.iot.control.model.enums.ConnectionMode
 import com.iot.control.model.enums.ConnectionType
 import com.iot.control.model.enums.DeviceType
 import com.iot.control.model.enums.EventType
@@ -43,4 +44,10 @@ class DbTypeConverters {
 
     @TypeConverter
     fun toDate(time: Long): Date = Date(time)
+
+    @TypeConverter
+    fun fromConnectionMode(mode: ConnectionMode): Int = mode.ordinal
+
+    @TypeConverter
+    fun toConnectionMode(mode: Int): ConnectionMode = ConnectionMode.fromInt(mode)
 }

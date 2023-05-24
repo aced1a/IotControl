@@ -18,8 +18,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.iot.control.R
+import com.iot.control.infrastructure.mqtt.client.MqttClient
+import com.iot.control.model.enums.ConnectionMode
 import com.iot.control.model.enums.ConnectionType
 import com.iot.control.ui.theme.IotControlTheme
+import com.iot.control.ui.utils.DropdownMenuField
 import com.iot.control.ui.utils.TopBarDialog
 import com.iot.control.viewmodel.ConnectionDialogState
 
@@ -30,7 +33,7 @@ fun ConnectionDialog(
     onUpdate: (ConnectionDialogState) -> Unit,
     saveConnection: () -> Unit,
     openDialog: MutableState<Boolean>,
-    modifier: Modifier
+    modifier: Modifier = Modifier
 ) {
     TopBarDialog(title = stringResource(R.string.new_connection_label), close = { openDialog.value = false }, save = saveConnection) {
         ConnectionDialogBody(
@@ -49,18 +52,21 @@ fun ConnectionDialogBody(
     modifier: Modifier
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 30.dp, vertical = 10.dp) ,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 30.dp, vertical = 10.dp) ,
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             OutlinedTextField(
                 value = dialogState.name,
                 onValueChange = { onUpdate(dialogState.copy(name = it)) },
-                label = { Text(stringResource(R.string.name_label)) }
+                label = { Text(stringResource(R.string.name_label)) },
+                modifier = Modifier.fillMaxWidth()
             )
 
             ConnectionTypeToggleButton(dialogState, onUpdate)
@@ -78,7 +84,7 @@ fun ConnectionTypeToggleButton(
     onUpdate: (ConnectionDialogState) -> Unit,
 )
 {
-    Row(horizontalArrangement = Arrangement.Center) {
+    Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
 
         ToggleButton(R.string.mqtt_label, 0, 0,
             dialogState.type == ConnectionType.MQTT ) {
@@ -128,10 +134,30 @@ fun MqttFields(
     onUpdate: (ConnectionDialogState) -> Unit
 )
 {
+    val expanded = remember { mutableStateOf(false) }
+
     OutlinedTextField(
         value = dialogState.address,
         label = { Text(stringResource(R.string.ip_label)) },
-        onValueChange = { onUpdate(dialogState.copy(address = it)) })
+        onValueChange = { onUpdate(dialogState.copy(address = it)) },
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        DropdownMenuField(
+            label = stringResource(R.string.select_mqtt_version),
+            value = stringResource(dialogState.mode.strId),
+            expanded = expanded,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            ConnectionMode.mqttModes().forEach {
+                DropdownMenuItem(text = { Text(stringResource(it.strId)) }, onClick = {
+                    expanded.value = false
+                    onUpdate(dialogState.copy(mode = it))
+                })
+            }
+        }
+    }
 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(stringResource(R.string.ssl_switcher_label))
@@ -146,7 +172,9 @@ fun MqttFields(
             value = dialogState.port,
             label = { Text(stringResource(R.string.port_label)) },
             onValueChange = { onUpdate(dialogState.copy(port = it)) },
-            modifier = Modifier.width(100.dp),
+            modifier = Modifier
+                .width(100.dp)
+                .fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType=KeyboardType.Number)
         )
     }
@@ -161,13 +189,15 @@ fun GenericMqttFields(
     OutlinedTextField(
         value = dialogState.username,
         label = { Text(stringResource(R.string.username_label)) },
-        onValueChange = { onUpdate(dialogState.copy(username = it)) })
+        onValueChange = { onUpdate(dialogState.copy(username = it)) },
+        modifier = Modifier.fillMaxWidth())
 
     OutlinedTextField(
         value = dialogState.password,
         label = { Text(stringResource(R.string.password_label)) },
         onValueChange = { onUpdate(dialogState.copy(password = it)) },
-        keyboardOptions = KeyboardOptions(keyboardType=KeyboardType.Password)
+        keyboardOptions = KeyboardOptions(keyboardType=KeyboardType.Password),
+        modifier = Modifier.fillMaxWidth()
     )
 }
 
@@ -181,14 +211,16 @@ fun SmsFields(
         label = { Text(stringResource(R.string.number_label)) },
         onValueChange = { onUpdate(dialogState.copy(address = it)) },
         keyboardOptions = KeyboardOptions(keyboardType=KeyboardType.Number),
-        maxLines = 1
+        maxLines = 1,
+        modifier = Modifier.fillMaxWidth()
     )
 
     OutlinedTextField(
         value = dialogState.parser,
         label = { Text(stringResource(R.string.parser_label)) },
         onValueChange = { onUpdate(dialogState.copy(parser = it)) },
-        maxLines = 3
+        maxLines = 3,
+        modifier = Modifier.fillMaxWidth()
     )
 }
 

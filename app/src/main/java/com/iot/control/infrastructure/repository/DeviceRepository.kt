@@ -35,15 +35,16 @@ class DeviceRepository(private val dao: DeviceDao) {
     }
 
     suspend fun deleteWidows() {
-        for(device in dao.getWidows()) delete(device)
+        dao.deleteWidows()
+//        for(device in dao.getWidows()) delete(device)
     }
 
     suspend fun updateByCommand(id: UUID, command: Command, value: String? = null) {
         val device = getDeviceById(id)
         if(device != null) {
             val newValue = when(command.action) {
-                CommandAction.ON -> ""
-                CommandAction.OFF -> ""
+                CommandAction.ON -> "ON"
+                CommandAction.OFF -> "OFF"
                 CommandAction.SET -> value ?: ""
                 else -> return
             }

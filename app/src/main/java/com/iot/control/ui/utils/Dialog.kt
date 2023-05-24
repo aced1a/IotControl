@@ -6,6 +6,7 @@ import com.iot.control.R
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -88,9 +89,12 @@ fun ConnectionDialogTopBar(
             }
         },
         actions = {
-            TextButton(onClick = save) {
-                Text(stringResource(R.string.save_label))
+            IconButton(onClick = save) {
+                Icon(imageVector = Icons.Filled.Check, contentDescription = "Save data")
             }
+//            TextButton(onClick = save) {
+//                Text(stringResource(R.string.save_label))
+//            }
         }
     )
 }

@@ -3,6 +3,7 @@ package com.iot.control.model
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.iot.control.model.enums.ConnectionMode
 import com.iot.control.model.enums.ConnectionType
 import java.util.UUID
 
@@ -12,6 +13,7 @@ data class Connection(@PrimaryKey val id: UUID = UUID.randomUUID(),
                       val address: String,
                       val port: Int,
                       @ColumnInfo(name="is_ssl") val isSsl: Boolean ,
+                      val mode: ConnectionMode,
                       val username: String?,
                       val password: String?,
                       val parser: String?,

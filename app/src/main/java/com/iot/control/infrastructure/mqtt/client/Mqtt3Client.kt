@@ -1,20 +1,49 @@
-package com.iot.control.infrastructure.mqtt
+package com.iot.control.infrastructure.mqtt.client
 
 import android.util.Log
 import com.hivemq.client.mqtt.datatypes.MqttQos
+import com.hivemq.client.mqtt.mqtt3.Mqtt3ClientBuilder
+import com.iot.control.R
 import com.iot.control.infrastructure.EventManager
+import com.iot.control.infrastructure.NotificationManager
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 import kotlin.jvm.optionals.getOrNull
 
 class Mqtt3Client(
-    val client: com.hivemq.client.mqtt.mqtt3.Mqtt3Client,
+    builder: Mqtt3ClientBuilder,
+//    val client: com.hivemq.client.mqtt.mqtt3.Mqtt3Client,
     val address: String,
-    val manager: EventManager
+    private val manager: EventManager,
+    private val notificationManager: NotificationManager,
+    val onDisconnected: () -> Unit
 ) : MqttClient {
     companion object {
         const val TAG = "Mqtt3Client"
     }
+
+    private var reconnection: Boolean = false
+    private var counter: Int = 0
+    private var wasConnected = false
+    private val client = builder
+        .addConnectedListener {
+            reconnection = false
+            counter = 0
+        }
+        .addDisconnectedListener {
+            Log.d(TAG, "Disconnected by ${it.source.name}: ${it.cause.message}")
+            if(!wasConnected && counter >= 4) {
+                it.reconnector.reconnect(false)
+//                onDisconnected()
+//                notificationManager.notify(R.string.disconnected_label, R.string.disconnected_text, address)
+
+            } else if(!reconnection && counter >= 3) {
+                reconnection = true
+                notificationManager.notify(R.string.reconnection_label, R.string.reconnection_text, address)
+            }
+            counter++
+        }
+        .build()
+
     private val subscribes: MutableSet<String> = mutableSetOf()
 
     override fun connect() {
@@ -22,8 +51,16 @@ class Mqtt3Client(
             .keepAlive(60)
             .send()
             .whenComplete { _, throwable ->
-                if(throwable != null) {}
+                if(throwable != null) {
+                    onDisconnected()
+                    notificationManager.notify(R.string.failed_connection_label, R.string.failed_connection_text, address)
 
+                    Log.d(TAG, "Failed connecting to $address")
+                } else {
+                    wasConnected = true
+                    notificationManager.notify(R.string.connected_label, R.string.connected_text, address)
+                    Log.d(TAG, "Successful connecting to $address")
+                }
             }
     }
 
@@ -31,7 +68,7 @@ class Mqtt3Client(
         if(client.state.isConnected) client.toAsync().disconnect()
     }
 
-    override fun publish(topic: String, payload: String, callback: () -> Unit) {
+    override fun publish(topic: String, payload: String, callback: () -> Unit, onFail: () -> Unit) {
         client.toAsync().publishWith()
             .topic(topic)
             .payload(payload.toByteArray())
@@ -39,9 +76,9 @@ class Mqtt3Client(
             .send()
             .whenComplete { _, throwable ->
                 if(throwable != null) {
-                    Log.d(Mqtt5Client.TAG, "Failed publish in $topic with error, ${throwable.message}")
+                    Log.d(TAG, "Failed publish in $topic with error, ${throwable.message}")
                 } else {
-                    Log.d(Mqtt5Client.TAG, "Successfully publish in $topic")
+                    Log.d(TAG, "Successfully publish in $topic")
                     callback()
                 }
             }

@@ -1,10 +1,10 @@
 package com.iot.control.infrastructure.mqtt
 
 import android.util.Log
-import com.iot.control.infrastructure.DbContext
 import com.iot.control.infrastructure.EventManager
+import com.iot.control.infrastructure.NotificationManager
+import com.iot.control.infrastructure.mqtt.client.MqttClient
 import com.iot.control.infrastructure.repository.ConnectionRepository
-import com.iot.control.infrastructure.repository.DeviceRepository
 import com.iot.control.infrastructure.repository.EventRepository
 import com.iot.control.model.Connection
 import com.iot.control.model.enums.ConnectionType
@@ -15,7 +15,8 @@ import javax.inject.Singleton
 class MqttConnections @Inject constructor(
     private val connectionRepository: ConnectionRepository,
     private val eventRepository: EventRepository,
-    private val eventManager: EventManager
+    private val eventManager: EventManager,
+    private val notificationManager: NotificationManager
 ) {
     companion object {
         const val TAG = "MqttConnections"
@@ -49,12 +50,16 @@ class MqttConnections @Inject constructor(
 
         Log.d(TAG, "Try connect to ${connection.address}")
 
+        val onDisconnected: () -> Unit = {
+            disconnect(connection.address)
+        }
+
         val client = MqttClient.configure()
-            .mqtt(MqttClient.Version.Mqtt5)
+            .mqtt(connection.mode)
             .address(connection.address, connection.port)
             .ssl(connection.isSsl)
             .auth(connection.username, connection.password)
-            .build(eventManager)
+            .build(eventManager, notificationManager, onDisconnected)
 
         connections[connection.address] = client
         client.connect()
@@ -62,13 +67,13 @@ class MqttConnections @Inject constructor(
         return client
     }
 
-    fun disconnect(connection: Connection) {
-        Log.d(TAG, "Disconnecting from ${connection.address}")
-        val client = get(connection.address)
+    fun disconnect(address: String) {
+        Log.d(TAG, "Disconnecting from $address")
+        val client = get(address)
 
         if(client != null) {
             client.disconnect()
-            connections.remove(connection.address)
+            connections.remove(address)
         }
     }
 }

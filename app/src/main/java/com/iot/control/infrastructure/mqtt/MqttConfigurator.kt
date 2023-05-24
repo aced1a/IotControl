@@ -1,14 +1,21 @@
 package com.iot.control.infrastructure.mqtt
 
-import com.hivemq.client.mqtt.MqttClientBuilderBase
 import com.iot.control.infrastructure.EventManager
-import java.nio.charset.Charset
+import com.iot.control.infrastructure.NotificationManager
+import com.iot.control.infrastructure.mqtt.client.Mqtt3Client
+import com.iot.control.infrastructure.mqtt.client.Mqtt5Client
+import com.iot.control.infrastructure.mqtt.client.MqttClient
+import com.iot.control.model.enums.ConnectionMode
 import java.util.UUID
 
-class MqttConfigurator {
-    private var builder = com.hivemq.client.mqtt.MqttClient.builder().identifier("iot-control-${UUID.randomUUID()}")
+class MqttConfigurator() {
+    private var builder = com.hivemq.client.mqtt.MqttClient.builder()
+                            .identifier("iot-control-${UUID.randomUUID()}")
+                            .automaticReconnect()
+                            .applyAutomaticReconnect()
+
     lateinit var address: String
-    private var version = MqttClient.Version.Mqtt5
+    private var version = ConnectionMode.Mqtt5
     private var login: String? = null
     private var pwd: String? = null
 
@@ -17,7 +24,7 @@ class MqttConfigurator {
         builder = builder.serverHost(address).serverPort(port)
         return this
     }
-    fun mqtt(version: MqttClient.Version): MqttConfigurator {
+    fun mqtt(version: ConnectionMode): MqttConfigurator {
         this.version = version
         return this
     }
@@ -30,14 +37,22 @@ class MqttConfigurator {
         pwd = password
         return this
     }
-    fun build(manager: EventManager):MqttClient {
-        return if(version == MqttClient.Version.Mqtt3)
-                buildMqtt3(manager)
+    fun build(
+        manager: EventManager,
+        notificationManager: NotificationManager,
+        onDisconnected: () -> Unit
+    ): MqttClient {
+        return if(version == ConnectionMode.Mqtt3)
+                buildMqtt3(manager, notificationManager, onDisconnected)
             else
-                buildMqtt5(manager)
+                buildMqtt5(manager, notificationManager, onDisconnected)
     }
 
-    private fun buildMqtt3(manager: EventManager): MqttClient {
+    private fun buildMqtt3(
+        manager: EventManager,
+        notificationManager: NotificationManager,
+        onDisconnected: () -> Unit
+    ): MqttClient {
         var client = builder.useMqttVersion3()
         if(login != null && pwd != null) {
             client = client.simpleAuth()
@@ -45,10 +60,14 @@ class MqttConfigurator {
                     .password(pwd!!.toByteArray(Charsets.UTF_8))
                     .applySimpleAuth()
         }
-        return Mqtt3Client(client.build(), address, manager)
+        return Mqtt3Client(client, address, manager, notificationManager, onDisconnected)
     }
 
-    private fun buildMqtt5(manager: EventManager): MqttClient {
+    private fun buildMqtt5(
+        manager: EventManager,
+        notificationManager: NotificationManager,
+        onDisconnected: () -> Unit
+    ): MqttClient {
         var client = builder.useMqttVersion5()
         if(login != null && pwd != null) {
             client = client.simpleAuth()
@@ -56,7 +75,7 @@ class MqttConfigurator {
                 .password(pwd!!.toByteArray(Charsets.UTF_8))
                 .applySimpleAuth()
         }
-        return Mqtt5Client(client.build(), address, manager)
+        return Mqtt5Client(client, address, manager, notificationManager, onDisconnected)
     }
 }
 

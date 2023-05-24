@@ -1,6 +1,9 @@
 package com.iot.control.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -11,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 
@@ -29,7 +33,9 @@ fun IotControlApp() {
         Scaffold(
             bottomBar = { BottomNavigation(navController, actions) }
         ) {
-            IotControlNavGraph(navController, actions)
+            Box(modifier = Modifier.padding(it)) {
+                IotControlNavGraph(navController, actions)
+            }
         }
     }
 }
@@ -50,21 +56,23 @@ fun BottomNavigation(navController: NavHostController, actions: IotControlNaviga
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
         NavigationBarItem(
-            label = { Text(stringResource(R.string.connections), style=MaterialTheme.typography.labelSmall, softWrap = false) },
+            label = {
+                Text(stringResource(R.string.connections), style=MaterialTheme.typography.labelSmall, softWrap = false)
+            },
             icon = { Icon( painter = painterResource(R.drawable.baseline_devices_other_24), null )},
             selected = currentPath == IotControlNavigation.CONNECTIONS,
             onClick = { actions.navigateToConnections() },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            modifier = Modifier
         )
         NavigationBarItem(
-            label = { Text(stringResource(R.string.scripts),  style=MaterialTheme.typography.labelSmall) },
+            label = { Text(stringResource(R.string.scripts), style=MaterialTheme.typography.labelSmall) },
             icon = { Icon( painter = painterResource(R.drawable.baseline_call_split_24), null )},
             selected = currentPath == IotControlNavigation.SCRIPTS,
             onClick = { actions.navigateToScripts() },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
         NavigationBarItem(
-            label = { Text(stringResource(R.string.settings),  style=MaterialTheme.typography.labelSmall) },
+            label = { Text(stringResource(R.string.settings), style=MaterialTheme.typography.labelSmall) },
             icon = { Icon(Icons.Filled.Settings, null)},
             selected = currentPath == IotControlNavigation.SETTINGS,
             onClick = { actions.navigateToSettings() },

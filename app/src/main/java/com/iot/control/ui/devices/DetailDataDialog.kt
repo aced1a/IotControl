@@ -15,62 +15,111 @@ import com.iot.control.R
 import com.iot.control.model.Command
 import com.iot.control.model.Device
 import com.iot.control.model.enums.CommandAction
+import com.iot.control.ui.utils.GeneralField
+import com.iot.control.ui.utils.TopBarDialog
 import com.iot.control.viewmodel.DialogUiState
 import com.iot.control.viewmodel.Marked
 
 @Composable
-fun DetailDataDialog(
+fun EventDialog(
     dialogUiState: DialogUiState,
+    title: String,
     update: (DialogUiState) -> Unit,
     save: () -> Unit,
     cancel: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(5.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    CommonDialog(dialogUiState, title , update , save, cancel) {
+        GeneralField(title = stringResource(R.string.notify_options), modifier = Modifier.fillMaxWidth().padding(top=5.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(stringResource(R.string.enable_notification))
+                Switch(
+                    checked = dialogUiState.notify,
+                    onCheckedChange = { update(dialogUiState.copy(notify = it)) }
+                )
+            }
 
-        OutlinedTextField(
-            value = dialogUiState.topic,
-            label = { Text(stringResource(R.string.topic_label)) },
-            onValueChange = { update(dialogUiState.copy(topic = it)) }
-        )
-
-        OutlinedTextField(
-            value = dialogUiState.payload,
-            label = { Text(stringResource(R.string.payload_label)) },
-            onValueChange = { update(dialogUiState.copy(payload = it)) }
-        )
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.json_payload_text))
-            Checkbox(
-                checked = dialogUiState.isJson,
-                onCheckedChange = { update(dialogUiState.copy(isJson = it)) }
-            )
+            if (dialogUiState.notify) {
+                OutlinedTextField(
+                    label = { Text(stringResource(R.string.notification_label)) },
+                    value = dialogUiState.notification,
+                    onValueChange = { update(dialogUiState.copy(notification = it)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
+    }
+}
 
-        if(dialogUiState.isJson)
+@Composable
+fun CommandDialog(
+    dialogUiState: DialogUiState,
+    title: String,
+    update: (DialogUiState) -> Unit,
+    save: () -> Unit,
+    cancel: () -> Unit
+) {
+    CommonDialog(dialogUiState, title , update , save, cancel) {}
+}
+
+@Composable
+fun CommonDialog(
+    dialogUiState: DialogUiState,
+    title: String,
+    update: (DialogUiState) -> Unit,
+    save: () -> Unit,
+    cancel: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    TopBarDialog(title = title, close = cancel, save = save) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 25.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             OutlinedTextField(
-                label = { Text(stringResource(R.string.data_field_label))},
-                value = dialogUiState.dataField,
-                onValueChange = { update(dialogUiState.copy(dataField = it)) }
+                value = dialogUiState.topic,
+                label = { Text(stringResource(R.string.topic_label)) },
+                onValueChange = { update(dialogUiState.copy(topic = it)) },
+                modifier = Modifier.fillMaxWidth()
             )
 
+            OutlinedTextField(
+                value = dialogUiState.payload,
+                label = { Text(stringResource(R.string.payload_label)) },
+                onValueChange = { update(dialogUiState.copy(payload = it)) },
+                modifier = Modifier.fillMaxWidth()
+            )
 
-        Row {
-            TextButton(
-                onClick = cancel
-            ) {
-                Text(stringResource(R.string.cancel_label))
-            }
+            GeneralField(title = stringResource(R.string.json_options), modifier = Modifier.fillMaxWidth().padding(top=5.dp)) {
 
-            TextButton(
-                onClick = save
-            ) {
-                Text(stringResource(R.string.save_label))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(stringResource(R.string.json_payload_text))
+                    Switch(
+                        checked = dialogUiState.isJson,
+                        onCheckedChange = { update(dialogUiState.copy(isJson = it)) }
+                    )
+                }
+
+                if (dialogUiState.isJson)
+                    OutlinedTextField(
+                        label = { Text(stringResource(R.string.data_field_label)) },
+                        value = dialogUiState.dataField,
+                        onValueChange = { update(dialogUiState.copy(dataField = it)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
             }
+            content()
         }
     }
 }

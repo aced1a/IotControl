@@ -3,6 +3,8 @@ package com.iot.control.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.iot.control.infrastructure.Notification
+import com.iot.control.infrastructure.mqtt.MqttConnections
 import com.iot.control.infrastructure.repository.CommandRepository
 import com.iot.control.infrastructure.repository.ConnectionRepository
 import com.iot.control.infrastructure.repository.DeviceRepository
@@ -41,6 +43,8 @@ data class DialogUiState(
     val topic: String = "",
     val payload: String = "",
     val isJson: Boolean = false,
+    val notify: Boolean = true,
+    val notification: String = "",
     val dataField: String = "")
 
 
@@ -50,6 +54,7 @@ class DeviceDetailViewModel @Inject constructor(
     private val deviceRepository: DeviceRepository,
     private val commandRepository: CommandRepository,
     private val eventRepository: EventRepository,
+    private val mqttConnections: MqttConnections,
     private val savedStateHandle: SavedStateHandle
 ): ViewModel() {
 
@@ -123,6 +128,8 @@ class DeviceDetailViewModel @Inject constructor(
             type = uiState.value.type,
             value = uiState.value.type.default
         )
+        val client = if(connection.type == ConnectionType.MQTT) mqttConnections.get(connection.address) else null
+
         viewModelScope.launch {
             if (deviceId == null) deviceRepository.add(device)
             else deviceRepository.update(device)
@@ -131,9 +138,11 @@ class DeviceDetailViewModel @Inject constructor(
                 if(command.isNew) commandRepository.add(command.item)
                 else commandRepository.update(command.item)
 
-            for(event in uiState.value.events)
+            for(event in uiState.value.events) {
                 if(event.isNew) eventRepository.add(event.item)
                 else eventRepository.update(event.item)
+                client?.subscribe(event.item.topic)
+            }
         }
     }
 
@@ -161,7 +170,7 @@ class DeviceDetailViewModel @Inject constructor(
         val command = Command(
             id = dialogState.value.id ?: UUID.randomUUID(),
             action = dialogState.value.action,
-            type = connection.type,
+            type = connection.type.value(),
             topic = dialogState.value.topic,
             payload = dialogState.value.payload,
             isJson = dialogState.value.isJson,
@@ -192,7 +201,9 @@ class DeviceDetailViewModel @Inject constructor(
                 topic = event.topic,
                 payload = event.payload,
                 isJson = event.isJson,
-                dataField = event.dataField ?: ""
+                dataField = event.dataField ?: "",
+                notify = event.notify,
+                notification = event.notification ?: ""
             )
         }
     }
@@ -207,7 +218,9 @@ class DeviceDetailViewModel @Inject constructor(
             dataField = dialogState.value.dataField.ifEmpty { null },
             connectionId = connectionId,
             deviceId = device.id,
-            isSync = false
+            isSync = false,
+            notify = dialogState.value.notify,
+            notification = dialogState.value.notification.ifEmpty { null }
         )
         _uiState.update { ui ->
             ui.copy(
@@ -216,6 +229,9 @@ class DeviceDetailViewModel @Inject constructor(
             )
         }
     }
+
+    fun deleteCommand() {}
+    fun deleteEvent() {}
 
     companion object {
         const val TAG = "DeviceDetailViewModel"

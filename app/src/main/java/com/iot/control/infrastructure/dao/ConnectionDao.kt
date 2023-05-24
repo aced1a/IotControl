@@ -12,6 +12,9 @@ interface ConnectionDao {
     @Query("SELECT * FROM connection")
     fun getAll(): Flow<List<Connection>>
 
+    @Query("SELECT * FROM connection WHERE username = (:username)")
+    suspend fun getByUsername(username: String): Connection?
+
     @Query("SELECT * FROM connection WHERE id = (:id)")
     suspend fun getById(id: UUID): Connection?
 

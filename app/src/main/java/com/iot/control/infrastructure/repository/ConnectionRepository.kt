@@ -16,6 +16,8 @@ class ConnectionRepository(private val dao: ConnectionDao) {
         const val TAG = "ConnectionRepository"
     }
 
+    suspend fun getByUsername(username: String) = dao.getByUsername(username)
+
     suspend fun add(connection: Connection) {
         Log.d(TAG, "Create new connection: $connection in ${Thread.currentThread()}")
         dao.add(connection)

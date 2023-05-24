@@ -26,6 +26,19 @@
     <string name="anon_label">Anonymous</string>
     <string name="credentials_label">Credentials</string>
 
+    <string name="connected_label"> Connected </string>
+    <string name="disconnected_label"> Disconnected </string>
+    <string name="reconnection_label"> Reconnection </string>
+
+    <string name="new_event_text"> New event </string>
+
+    <string name="connected_text"> Connected to %1$s </string>
+    <string name="disconnected_text"> Disconnected from %1$s </string>
+    <string name="reconnection_text"> Try reconnect to %1$s </string>
+    <string name="failed_connection_text"> Failed connection to %1$s </string>
+
+
+    <string name="failed_connection_label"> Failed connection </string>
     <string name="new_connection_label"> Create new connection </string>
     <string name="new_device_label"> Create new device </string>
     <string name="new_script_label"> Create new script </string>
@@ -39,6 +52,9 @@
     <string name="add_new_event"> Add new %1$s event </string>
     <string name="action_label"> Action </string>
     <string name="guard_label"> Guard </string>
+
+    <string name="json_options"> Json options </string>
+    <string name="notify_options"> Notification options </string>
 
     <string name="source_device_label"> Source device </string>
     <string name="target_device_label"> Target device </string>
@@ -81,4 +97,19 @@
 
     <string name="json_label">Json</string>
     <string name="plain_label">Plain</string>
+
+    <string name="enable_mqtt_text">Enable MQTT client</string>
+    <string name="enable_broker_text">Enable MQTT broker</string>
+    <string name="enable_sms_text">Enable SMS client</string>
+
+    <string name="enable_notification"> Enable notification </string>
+    <string name="notification_label"> Notification </string>
+
+    <string name="select_mqtt_version"> MQTT version </string>
+    <string name="mqtt_v3"> MQTT 3.1.1 </string>
+    <string name="mqtt_v5"> MQTT 5 </string>
+
+    <string name="en"> English </string>
+    <string name="ru"> Russian </string>
+
 </resources>

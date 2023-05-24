@@ -65,8 +65,7 @@ fun ConnectionsScreen(
                         connectionsViewModel.saveConnection()
                         openDialog.value = false
                     },
-                    openDialog,
-                    Modifier.padding(horizontal = 25.dp, vertical = 15.dp)
+                    openDialog
                 )
             }
     }
@@ -83,7 +82,7 @@ fun NewConnectionFab(
             newConnection()
             openDialog.value = true
         },
-        modifier = Modifier.offset(x = (-10).dp, y = (-80).dp)
+        modifier = Modifier.offset(x = (-10).dp, y = (-10).dp)
     ) {
         Icon(Icons.Filled.Add, null)
     }

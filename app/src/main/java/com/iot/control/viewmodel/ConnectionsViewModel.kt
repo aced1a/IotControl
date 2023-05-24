@@ -1,17 +1,15 @@
 package com.iot.control.viewmodel
 
 import android.util.Log
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.iot.control.infrastructure.DbContext
-import com.iot.control.infrastructure.mqtt.MqttBroker
+import com.iot.control.infrastructure.mqtt.broker.MqttBroker
 import com.iot.control.infrastructure.mqtt.MqttConnections
 import com.iot.control.infrastructure.repository.ConnectionRepository
 import com.iot.control.infrastructure.repository.DeviceRepository
 import com.iot.control.infrastructure.sms.SmsClient
 import com.iot.control.model.Connection
+import com.iot.control.model.enums.ConnectionMode
 import com.iot.control.model.enums.ConnectionType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -23,10 +21,11 @@ import javax.inject.Inject
 data class ConnectionDialogState(
     val name: String = "",
     val address: String = "",
-    val port: String = "8883",
+    val port: String = "1883",
     val username: String = "",
     val password: String = "",
     val parser: String = "",
+    val mode: ConnectionMode = ConnectionMode.Mqtt5,
     val isSsl: Boolean = false,
     val type: ConnectionType = ConnectionType.MQTT)
 
@@ -85,7 +84,8 @@ class ConnectionsViewModel @Inject constructor(
                 password = connection.password ?: "",
                 parser = connection.parser ?: "",
                 isSsl = connection.isSsl,
-                type = connection.type
+                type = connection.type,
+                mode = connection.mode
             )
         }
     }
@@ -96,27 +96,41 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     fun saveConnection() {
+        if(dialogState.value.username.isEmpty() or dialogState.value.password.isEmpty()) return
+
         //TODO("address for local broker connection")
         val type = dialogState.value.type
         val connection = Connection(
             id = uiState.value.selectedConnectionID ?: UUID.randomUUID(),
             name = dialogState.value.name,
-            address = if(type == ConnectionType.LOCAL_MQTT) "local:${dialogState.value.username}" else dialogState.value.address,
-            port = dialogState.value.port.toIntOrNull() ?: 8883,
+            address = if(type == ConnectionType.LOCAL_MQTT) "${MqttBroker.ADDRESS}:${dialogState.value.username}" else dialogState.value.address,
+            port = dialogState.value.port.toIntOrNull() ?: 1883,
             username = dialogState.value.username.ifEmpty { null },
             password = dialogState.value.password.ifEmpty { null },
             parser = dialogState.value.parser.ifEmpty { null },
             isSsl = dialogState.value.isSsl,
-            type = type
+            type = type,
+            mode = dialogState.value.mode
         )
 
         Log.d(TAG, "Try save connection $connection")
 
+        disconnectFromBroker()
         viewModelScope.launch {
             if(uiState.value.selectedConnectionID == null)
                 connectionRepository.add(connection)
             else
                 connectionRepository.update(connection)
+
+            if(connection.type == ConnectionType.MQTT) mqttConnections.connect(connection)
+        }
+    }
+
+    private fun disconnectFromBroker() {
+        if(uiState.value.selectedConnectionID != null) {
+            val oldConnection = uiState.value.connections.find { it.id == uiState.value.selectedConnectionID }
+            if(oldConnection?.type == ConnectionType.MQTT)
+                mqttConnections.disconnect(oldConnection.address)
         }
     }
 
@@ -124,6 +138,8 @@ class ConnectionsViewModel @Inject constructor(
         viewModelScope.launch {
             connectionRepository.delete(connection)
             deviceRepository.deleteWidows()
+
+            mqttConnections.disconnect(connection.address)
         }
     }
 

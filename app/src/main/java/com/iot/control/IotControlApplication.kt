@@ -6,11 +6,11 @@ import android.util.Log
 import androidx.room.Room
 import com.iot.control.infrastructure.ApplicationDatabase
 import com.iot.control.infrastructure.DbContext
-import com.iot.control.infrastructure.mqtt.MqttBroker
 import com.iot.control.infrastructure.repository.CommandRepository
 import com.iot.control.infrastructure.repository.ConnectionRepository
 import com.iot.control.infrastructure.repository.DeviceRepository
 import com.iot.control.infrastructure.repository.EventRepository
+import com.iot.control.infrastructure.repository.LogRepository
 import com.iot.control.infrastructure.repository.ScriptRepository
 import com.iot.control.infrastructure.repository.TimerRepository
 import com.iot.control.infrastructure.sms.SmsSender
@@ -34,17 +34,9 @@ class IotControlApplication : Application() {
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
-//    @Provides
-//    @Singleton fun provideDbContext(@ApplicationContext context: Context): DbContext {
-//        Log.d("AppModule", "Provide dbContext")
-//        return DbContext.provide(context)
-//    }
 
     @Provides
-    @Singleton fun provideSmsSender(@ApplicationContext context: Context): SmsSender = SmsSender.create(context)
-
-    @Provides
-    @Singleton fun provideMqttBroker(): MqttBroker = MqttBroker()
+    @Singleton fun provideSmsSender(@ApplicationContext context: Context): SmsSender = SmsSender.create(context) { context }
 }
 
 @Module
@@ -86,5 +78,10 @@ object DatabaseModule {
     @Provides
     @Singleton fun provideTimerRepository(database: ApplicationDatabase): TimerRepository {
         return TimerRepository(database.timerDao())
+    }
+
+    @Provides
+    @Singleton fun provideLogRepository(database: ApplicationDatabase): LogRepository {
+        return LogRepository((database.logDao()))
     }
 }

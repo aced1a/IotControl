@@ -20,6 +20,9 @@ data class Device(@PrimaryKey val id: UUID = UUID.randomUUID(),
                   @ColumnInfo(name="mqtt_id", index = true) val mqttConnectionId: UUID?,
                   @ColumnInfo(name="sms_id", index = true) val smsConnectionId: UUID?) {
     companion object {
+        const val ON = "ON"
+        const val OFF = "OFF"
+
         fun getDefaultDevice(): Device {
             return Device(
                 name = "",

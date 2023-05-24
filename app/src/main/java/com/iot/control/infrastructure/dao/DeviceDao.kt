@@ -23,6 +23,9 @@ interface DeviceDao {
     @Query("SELECT * FROM device WHERE mqtt_id IS NULL AND sms_id IS NULL")
     suspend fun getWidows(): List<Device>
 
+    @Query("DELETE FROM device WHERE mqtt_id IS NULL AND sms_id IS NULL")
+    suspend fun deleteWidows()
+
     @Insert
     suspend fun add(device: Device)
 

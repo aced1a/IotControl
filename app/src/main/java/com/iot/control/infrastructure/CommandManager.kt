@@ -1,7 +1,7 @@
 package com.iot.control.infrastructure
 
 import android.util.Log
-import com.iot.control.infrastructure.mqtt.MqttBroker
+import com.iot.control.infrastructure.mqtt.broker.MqttBroker
 import com.iot.control.infrastructure.mqtt.MqttConnections
 import com.iot.control.infrastructure.repository.CommandRepository
 import com.iot.control.infrastructure.repository.ConnectionRepository
@@ -25,7 +25,8 @@ class CommandManager @Inject constructor(
     private val smsClient: SmsClient,
     private val deviceRepository: DeviceRepository,
     private val commandRepository: CommandRepository,
-    private val connectionRepository: ConnectionRepository
+    private val connectionRepository: ConnectionRepository,
+    private val notificationManager: NotificationManager
 ) {
     companion object {
         const val TAG = "CommandManager"
@@ -53,31 +54,38 @@ class CommandManager @Inject constructor(
     private suspend fun executeMqttCommand(command: Command, device: Device) {
         if(device.mqttConnectionId != null) {
             val connection = connectionRepository.getById(device.mqttConnectionId) ?: return
-            val callback = { update(command) }
+            val callback = { update(command, device.value) }
+            val onFail = { notificationManager.notify("Failure", "Fail to send mqtt command ${command.type.name}") }
 
             if(connection.type == ConnectionType.LOCAL_MQTT) {
                 mqttBroker.publish(command.topic, command.payload, callback)
             }
             else {
                 val client = mqttConnections.get(connection.address)
-                client?.publish(command.topic, command.payload, callback)
+                client?.publish(command.topic, command.payload, callback, onFail)
             }
         }
-
     }
 
     private suspend fun executeSmsCommand(command: Command, device: Device) {
         if(device.smsConnectionId != null) {
             val connection = connectionRepository.getById(device.smsConnectionId) ?: return
 
-            //SmsClient.send
+            smsClient.send(connection.address, command)
         }
+    }
+
+    private fun getPayload(payload: String, value: String?): String {
+        return if(value != null)
+            payload.replace("&{value}", value)
+        else
+            payload
     }
 
     fun update(command: Command, value: String? = null) {
         Log.d(TAG, "Updating device value by $command")
         kotlinx.coroutines.MainScope().launch {
-            deviceRepository.updateByCommand(command.id, command, value)
+            deviceRepository.updateByCommand(command.deviceId, command, value)
         }
     }
 }
