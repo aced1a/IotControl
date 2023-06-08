@@ -1,6 +1,5 @@
 package com.iot.control.ui.connections
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,14 +7,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -23,12 +20,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iot.control.R
 import com.iot.control.model.Connection
 import com.iot.control.model.enums.ConnectionType
-import com.iot.control.ui.theme.IotControlTheme
 import com.iot.control.viewmodel.ConnectionsViewModel
 import java.util.*
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConnectionsScreen(
     connectionsViewModel: ConnectionsViewModel,
@@ -44,9 +39,10 @@ fun ConnectionsScreen(
         ConnectionsList(
             connections = state.connections,
             connectionsViewModel::active,
+            connectionsViewModel::toggleConnection,
             toDevices,
-            {
-                connectionsViewModel.loadSelectedConnection(it)
+            { connection ->
+                connectionsViewModel.loadSelectedConnection(connection)
                 openDialog.value = true
             },
             connectionsViewModel::deleteConnection,
@@ -92,6 +88,7 @@ fun NewConnectionFab(
 fun ConnectionsList(
     connections: List<Connection>,
     getConnectionStatus: (Connection) -> Boolean,
+    toggleConnection: (Connection) -> Boolean,
     toDeviceList: (UUID) -> Unit,
     openEditDialog: (Connection) -> Unit,
     delete: (Connection) -> Unit,
@@ -99,7 +96,7 @@ fun ConnectionsList(
 ) {
     LazyColumn(state=rememberLazyListState(), modifier = modifier) {
         items(connections) { connection ->
-            ConnectionItem(connection, getConnectionStatus, toDeviceList, openEditDialog, delete)
+            ConnectionItem(connection, getConnectionStatus, toggleConnection, toDeviceList, openEditDialog, delete)
         }
         item {
            Spacer(modifier = Modifier.height(70.dp))
@@ -111,44 +108,57 @@ fun ConnectionsList(
 fun ConnectionItem(
     connection: Connection,
     getConnectionStatus: (Connection) -> Boolean,
+    toggleConnection: (Connection) -> Boolean,
     toDeviceList: (UUID) -> Unit,
     openEditDialog: (Connection) -> Unit,
     delete: (Connection) -> Unit
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
-    Column(
-        Modifier
-            .padding(all = 15.dp)
-            .fillMaxWidth()
-            .clickable { menuOpen = menuOpen.not() },
-        verticalArrangement = Arrangement.spacedBy(5.dp)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp) .clickable { menuOpen = menuOpen.not() },
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-
-        Text(connection.name, style = MaterialTheme.typography.headlineSmall)
-        Text(connection.address, style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.secondary)
-
-        Row(
-            modifier=Modifier.fillMaxWidth(),
-            horizontalArrangement=Arrangement.spacedBy(5.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            Modifier.padding(bottom = 15.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
 
-            ActivityChip(getConnectionStatus(connection))
-            SimpleChip(connection.type.labelId)
-            SimpleChip(
-                if(connection.isCredentials) R.string.credentials_label else R.string.anon_label
+            Text(connection.name, style = MaterialTheme.typography.headlineSmall)
+            Text(
+                connection.address,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.secondary
             )
-            if(connection.type == ConnectionType.LOCAL_MQTT) SimpleChip(R.string.local_label)
-            if(connection.isSsl) SimpleChip(R.string.ssl_label)
-        }
 
-        if(menuOpen) {
+            Row(
+//                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                SimpleChip(connection.type.labelId)
+                SimpleChip(
+                    if (connection.isCredentials) R.string.credentials_label else R.string.anon_label
+                )
+                if (connection.type == ConnectionType.LOCAL_MQTT) SimpleChip(R.string.local_label)
+                if (connection.isSsl) SimpleChip(R.string.ssl_label)
+            }
+        }
+        ActivityChip(
+            getStatus = { getConnectionStatus(connection) },
+            toggle = { toggleConnection(connection) }
+        )
+    }
+    if(menuOpen) {
+        Column(modifier = Modifier.padding(start = 15.dp)) {
             ContextMenuItem(R.string.device_list_text) { toDeviceList(connection.id) }
             ContextMenuItem(R.string.edit_label) { openEditDialog(connection) }
             ContextMenuItem(R.string.delete_label) { delete(connection) }
         }
     }
+
 }
 
 @Composable
@@ -164,12 +174,16 @@ fun ContextMenuItem(resourceId: Int, callback: () -> Unit)
 }
 
 @Composable
-fun ActivityChip(active: Boolean) {
+fun ActivityChip(getStatus: () -> Boolean, toggle: () -> Boolean) {
+    var status by remember { mutableStateOf(getStatus()) }
 
-    Icon(
-        imageVector = Icons.Filled.CheckCircle,
-        tint = if(active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-        contentDescription = "")
+    IconButton(onClick = { status = toggle() }) {
+        Icon(
+            imageVector = Icons.Filled.CheckCircle,
+            tint = if(status) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+            contentDescription = ""
+        )
+    }
 
 }
 

@@ -33,8 +33,8 @@ class Mqtt3Client(
             Log.d(TAG, "Disconnected by ${it.source.name}: ${it.cause.message}")
             if(!wasConnected && counter >= 4) {
                 it.reconnector.reconnect(false)
-//                onDisconnected()
-//                notificationManager.notify(R.string.disconnected_label, R.string.disconnected_text, address)
+                onDisconnected()
+                notificationManager.notify(R.string.disconnected_label, R.string.disconnected_text, address)
 
             } else if(!reconnection && counter >= 3) {
                 reconnection = true
@@ -65,7 +65,11 @@ class Mqtt3Client(
     }
 
     override fun disconnect() {
-        if(client.state.isConnected) client.toAsync().disconnect()
+        if(client.state.isConnected) {
+            wasConnected = false
+            counter = 99
+            client.toAsync().disconnect()
+        }
     }
 
     override fun publish(topic: String, payload: String, callback: () -> Unit, onFail: () -> Unit) {

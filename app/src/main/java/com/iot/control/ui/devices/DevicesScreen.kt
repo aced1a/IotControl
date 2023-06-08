@@ -14,18 +14,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iot.control.R
 import com.iot.control.model.Device
-import com.iot.control.model.enums.DeviceType
 import com.iot.control.ui.connections.ContextMenuItem
 import com.iot.control.ui.connections.SimpleChip
-import com.iot.control.ui.theme.IotControlTheme
+import com.iot.control.ui.utils.DashedDivider
+import com.iot.control.ui.utils.LabeledValue
 import com.iot.control.ui.utils.SimpleTextDialog
-import com.iot.control.ui.dashboard.WidgetIcon
 import com.iot.control.viewmodel.DevicesViewModel
 import com.iot.control.viewmodel.SelectDeviceUiState
 import java.util.*
@@ -41,10 +38,10 @@ fun DevicesScreen(
     Scaffold(
         floatingActionButton = {
             NewDeviceExtendedFab(
-                newDevice = {
+                leftSelect = {
                     toDeviceDialog(null, deviceViewModel.connectionId)
                 },
-                selectDevice = {
+                topSelect = {
                     deviceViewModel.loadExistingDevices()
                     selectDeviceDialog.value = true
                 },
@@ -70,21 +67,21 @@ fun DevicesScreen(
 
 @Composable
 fun NewDeviceExtendedFab(
-    newDevice: () -> Unit,
-    selectDevice: () -> Unit,
+    leftSelect: () -> Unit,
+    topSelect: () -> Unit,
     expanded: MutableState<Boolean>
 ) {
     Box {
         AnimatedVisibility(visible=expanded.value) {
             FloatingActionButton(
-                onClick = newDevice,
+                onClick = leftSelect,
                 modifier = Modifier
                     .offset(x = (-60).dp, y = (-5).dp)
                     .size(40.dp)
             ) { Icon(painterResource(R.drawable.baseline_add_12), null) }
 
             FloatingActionButton(
-                onClick = selectDevice,
+                onClick = topSelect,
                 modifier = Modifier
                     .offset(x = (-5).dp, y = (-60).dp)
                     .size(40.dp)
@@ -135,16 +132,13 @@ fun DeviceItem(device: Device,
             .fillMaxWidth()
             .clickable { menuOpen = menuOpen.not() }
     ) {
-        WidgetIcon(device.type)
-
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text(device.name, style = MaterialTheme.typography.headlineSmall)
-            Text(stringResource(device.type.nameId), style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.secondary)
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                if(device.idDisplayable) SimpleChip(R.string.displayable_label)
+
                 if(device.mqttConnectionId != null) SimpleChip(R.string.mqtt_label)
-                if(device.smsConnectionId != null) SimpleChip(R.string.mqtt_label)
+                if(device.smsConnectionId != null) SimpleChip(R.string.sms_label)
             }
         }
     }
@@ -182,13 +176,15 @@ fun SelectExistingDeviceDialog(
                             stringResource(R.string.no_devices_found),
                             modifier = Modifier.padding(top = 10.dp, bottom = 10.dp)
                         )
+                        Spacer(modifier = Modifier.height(5.dp))
                     }
                 }
                 items(state.withoutConnection) { device ->
-                    SimpleDeviceItem(device) {
+                    SimpleDeviceItem(device, modifier = Modifier.fillMaxWidth()) {
                         select(device)
                         visibility.value = false
                     }
+                    DashedDivider()
                 }
                 item {
                     Text(stringResource(R.string.devices_other))
@@ -200,12 +196,15 @@ fun SelectExistingDeviceDialog(
                             stringResource(R.string.no_devices_found),
                             modifier = Modifier.padding(top = 10.dp, bottom = 10.dp)
                         )
+                        Spacer(modifier = Modifier.height(5.dp))
                     }
                 }
                 items(state.others) { device ->
-                    SimpleDeviceItem(device) {
+                    SimpleDeviceItem(device, modifier = Modifier.fillMaxWidth()) {
                         acceptVisibility.value = true
                     }
+                    DashedDivider()
+
                     if(acceptVisibility.value) SimpleTextDialog(
                         stringResource(R.string.change_connection),
                         accept = {
@@ -224,21 +223,13 @@ fun SimpleDeviceItem(
     modifier: Modifier = Modifier,
     select: () -> Unit
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(15.dp), verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .clickable { select() }
-    ) {
-        WidgetIcon(device.type)
-
-        Column(verticalArrangement = Arrangement.Center) {
-            Text(device.name, style = MaterialTheme.typography.headlineSmall)
-            Text(stringResource(device.type.nameId), style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.secondary)
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                if(device.idDisplayable) SimpleChip(R.string.displayable_label)
-                if(device.mqttConnectionId != null) SimpleChip(R.string.mqtt_label)
-                if(device.smsConnectionId != null) SimpleChip(R.string.mqtt_label)
-            }
+    LabeledValue(device.name, "", modifier = modifier
+        .padding(horizontal = 10.dp)
+        .clickable { select() }, space = true) {
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            if(device.mqttConnectionId != null) SimpleChip(R.string.mqtt_label)
+            if(device.smsConnectionId != null) SimpleChip(R.string.sms_label)
         }
     }
+
 }

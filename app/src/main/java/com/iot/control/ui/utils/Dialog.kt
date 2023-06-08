@@ -92,9 +92,6 @@ fun ConnectionDialogTopBar(
             IconButton(onClick = save) {
                 Icon(imageVector = Icons.Filled.Check, contentDescription = "Save data")
             }
-//            TextButton(onClick = save) {
-//                Text(stringResource(R.string.save_label))
-//            }
         }
     )
 }

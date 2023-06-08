@@ -2,6 +2,7 @@ package com.iot.control.infrastructure.repository
 
 import com.iot.control.infrastructure.dao.ScriptDao
 import com.iot.control.model.Script
+import com.iot.control.model.enums.EventType
 import java.util.UUID
 
 class ScriptRepository(val dao: ScriptDao) {
@@ -9,7 +10,7 @@ class ScriptRepository(val dao: ScriptDao) {
 
     suspend fun getById(id: UUID) = dao.getById(id)
 
-    suspend fun getByEventId(id: UUID) = dao.getByEventId(id)
+    suspend fun getByEventType(type: EventType) = dao.getByEventType(type)
 
     suspend fun getByTimerId(id: UUID) = dao.getByTimerId(id)
 

@@ -27,7 +27,10 @@ data class ConnectionDialogState(
     val parser: String = "",
     val mode: ConnectionMode = ConnectionMode.Mqtt5,
     val isSsl: Boolean = false,
-    val type: ConnectionType = ConnectionType.MQTT)
+    val type: ConnectionType = ConnectionType.MQTT,
+    val minutes: Int = 0,
+    val secs: Int = 0
+)
 
 data class ConnectionsUiState(
     val connections: List<Connection> = emptyList(),
@@ -67,6 +70,15 @@ class ConnectionsViewModel @Inject constructor(
         }
     }
 
+    fun toggleConnection(connection: Connection): Boolean {
+        return when(connection.type) {
+            ConnectionType.SMS -> active(connection)
+            ConnectionType.MQTT -> mqttConnections.toggle(connection)
+            ConnectionType.LOCAL_MQTT -> mqttBroker.running && mqttBroker.has(connection.username)
+            else -> false
+        }
+    }
+
     fun newConnection() {
         _uiState.update { it.copy(selectedConnectionID = null) }
         _dialogState.update { ConnectionDialogState() }
@@ -85,7 +97,9 @@ class ConnectionsViewModel @Inject constructor(
                 parser = connection.parser ?: "",
                 isSsl = connection.isSsl,
                 type = connection.type,
-                mode = connection.mode
+                mode = connection.mode,
+                minutes = (connection.expiredTime / 60000).toInt(),
+                secs = (connection.expiredTime / 1000 % 60).toInt()
             )
         }
     }
@@ -96,10 +110,10 @@ class ConnectionsViewModel @Inject constructor(
     }
 
     fun saveConnection() {
-        if(dialogState.value.username.isEmpty() or dialogState.value.password.isEmpty()) return
-
-        //TODO("address for local broker connection")
         val type = dialogState.value.type
+        if(type == ConnectionType.LOCAL_MQTT &&
+            (dialogState.value.username.isEmpty() or dialogState.value.password.isEmpty())) return
+
         val connection = Connection(
             id = uiState.value.selectedConnectionID ?: UUID.randomUUID(),
             name = dialogState.value.name,
@@ -110,7 +124,9 @@ class ConnectionsViewModel @Inject constructor(
             parser = dialogState.value.parser.ifEmpty { null },
             isSsl = dialogState.value.isSsl,
             type = type,
-            mode = dialogState.value.mode
+            mode = dialogState.value.mode,
+            certificatePath = null,
+            expiredTime = ((dialogState.value.minutes * 60 + dialogState.value.secs) * 1000).toLong()
         )
 
         Log.d(TAG, "Try save connection $connection")

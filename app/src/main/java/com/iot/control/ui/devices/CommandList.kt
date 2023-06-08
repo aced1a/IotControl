@@ -7,11 +7,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,13 +26,16 @@ import com.iot.control.R
 import com.iot.control.model.Command
 import com.iot.control.model.enums.CommandAction
 import com.iot.control.ui.connections.SimpleChip
+import com.iot.control.ui.utils.GeneralField
+import com.iot.control.ui.utils.LabeledValue
 import com.iot.control.viewmodel.Marked
 
 @Composable
 fun CommandList(
     commands: List<Marked<Command>>,
     editCommand: (Command) -> Unit,
-    addCommand: (CommandAction) -> Unit
+    addCommand: (CommandAction) -> Unit,
+    deleteCommand: (Marked<Command>) -> Unit
 ) {
     var visible by remember { mutableStateOf(false) }
 
@@ -38,23 +44,31 @@ fun CommandList(
             .fillMaxWidth()
             .clickable { visible = visible.not() }
     ) {
-        Text(
-            stringResource(R.string.commands_label),
-            modifier = Modifier.fillMaxWidth(),
-            style = MaterialTheme.typography.headlineSmall)
-        Divider()
 
-        if(visible) {
-            LazyColumn {
-                items(commands) { command ->
-                    CommandListItem(command.item, editCommand)
-                }
-                item { Divider() }
-                items(CommandAction.values()) { action ->
-                    if(commands.find { it.item.action == action } == null)
-                        NewItemList(
-                            stringResource(R.string.add_new_command, action.name)
-                        ) { addCommand(action) }
+        GeneralField(stringResource(R.string.commands_label)) {
+
+            if (visible) {
+                LazyColumn {
+                    items(commands) { item ->
+                        val command = item.item
+
+                        LabeledValue(command.action.name, command.topic, modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { editCommand(command) }
+                        ) {
+                            IconButton(onClick = { deleteCommand(item) }) {
+                                Icon(imageVector = Icons.Filled.Delete, contentDescription = "Delete event")
+                            }
+                        }
+                    }
+
+                    item { Divider() }
+                    items(CommandAction.values()) { action ->
+                        if (commands.find { it.item.action == action } == null)
+                            NewItemList(
+                                stringResource(R.string.add_new_command, action.name)
+                            ) { addCommand(action) }
+                    }
                 }
             }
         }

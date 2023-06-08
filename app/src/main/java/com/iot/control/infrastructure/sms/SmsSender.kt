@@ -25,7 +25,6 @@ class SmsSender(private val manager: SmsManager, private val getContext: () -> C
     }
 
     private fun createIntent(id: String): PendingIntent {
-        //TODO try?
         val intent = Intent(SmsClient.DELIVER_ACTION).apply { putExtra("id", id) }
 
         return PendingIntent.getBroadcast(

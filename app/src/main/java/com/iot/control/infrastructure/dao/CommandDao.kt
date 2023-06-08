@@ -14,8 +14,11 @@ interface CommandDao {
     @Query("SELECT * FROM command WHERE device_id = (:id) AND type = (:type)")
     suspend fun getByIdAndType(id: UUID, type: ConnectionType): List<Command>
 
-    @Query("SELECT * FROM command WHERE device_id = (:id) AND action = (:action) AND type = (:type)")
+    @Query("SELECT * FROM command WHERE device_id = (:id) AND [action] = (:action) AND type = (:type)")
     suspend fun getByDeviceEvent(id: UUID, action: CommandAction, type: ConnectionType): Command?
+
+    @Query("SELECT * FROM command WHERE connection_id = (:connectionId) AND topic = (:topic) and `action`=(:action)")
+    suspend fun getByConnectionAndTopic(connectionId: UUID, topic: String, action: CommandAction): List<Command>
 
     @Query("SELECT * FROM command WHERE connection_id = (:id)")
     suspend fun getByConnectionId(id: UUID): List<Command>

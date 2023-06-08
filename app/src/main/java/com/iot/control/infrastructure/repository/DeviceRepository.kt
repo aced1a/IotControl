@@ -17,17 +17,15 @@ class DeviceRepository(private val dao: DeviceDao) {
 
     fun getByConnectionId(id: UUID) = dao.getByConnectionId(id)
 
-    fun getByDisplayableState(isDisplayable: Boolean) = dao.getByDisplayableState(isDisplayable)
-
-    suspend fun updateByEvent(id: UUID, event: Event) {
+    suspend fun updateByEvent(id: UUID, event: Event, value: String?) {
         val device = getDeviceById(id)
 
         if(device != null) {
             val value = when(event.type) {
-                EventType.ON -> "ON"
-                EventType.OFF -> "OFF"
-                EventType.INVERSE -> if(device.value == "ON") "OFF" else "ON"
-                EventType.SET -> event.payload
+                EventType.On -> Device.ON
+                EventType.Off -> Device.OFF
+                EventType.Inverse -> if(device.value == Device.ON) Device.OFF else Device.ON
+                EventType.Set -> value ?:  event.payload
                 else -> return
             }
             update(device.copy(value = value))
@@ -43,9 +41,9 @@ class DeviceRepository(private val dao: DeviceDao) {
         val device = getDeviceById(id)
         if(device != null) {
             val newValue = when(command.action) {
-                CommandAction.ON -> "ON"
-                CommandAction.OFF -> "OFF"
-                CommandAction.SET -> value ?: ""
+                CommandAction.On -> Device.ON
+                CommandAction.Off -> Device.OFF
+                CommandAction.Set -> value ?: ""
                 else -> return
             }
 

@@ -1,22 +1,21 @@
 package com.iot.control.viewmodel
 
 
-import android.app.Activity
 import android.content.Context
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.iot.control.R
-import com.iot.control.infrastructure.mqtt.broker.MqttBroker
 import com.iot.control.infrastructure.mqtt.MqttConnections
+import com.iot.control.infrastructure.mqtt.broker.MqttBroker
+import com.iot.control.infrastructure.repository.LogRepository
 import com.iot.control.infrastructure.sms.SmsClient
+import com.iot.control.model.LogMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.intellij.lang.annotations.Language
 import java.util.Locale
 import javax.inject.Inject
 
@@ -25,16 +24,18 @@ data class SettingsUiState(
     val brokerRunning: Boolean,
     val smsClientRunning: Boolean,
     val locale: Int,
+    val logs: List<LogMessage> = emptyList()
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val mqttConnections: MqttConnections,
     private val mqttBroker: MqttBroker,
-    private val smsClient: SmsClient
+    private val smsClient: SmsClient,
+    private val logRepository: LogRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<SettingsUiState>(
+    private val _uiState = MutableStateFlow(
         SettingsUiState(
             connectionsRunning = mqttConnections.running,
             brokerRunning = mqttBroker.running,
@@ -42,15 +43,22 @@ class SettingsViewModel @Inject constructor(
             locale = R.string.en
         )
     )
-
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
-    val languageList: List<Int>
-        get() = listOf(R.string.ru, R.string.en)
 
+    init {
+        viewModelScope.launch {
+            logRepository.getAll().collect { logs ->
+                _uiState.update {
+                    it.copy(logs = logs)
+                }
+            }
+        }
+    }
 
+    val languageList: List<Int> get() = listOf(R.string.ru, R.string.en)
 
-    fun updateLocale(context: Context) {
+    fun updateLocale() {
         val locale = Locale.getDefault()//config.locales[0]
 
 
@@ -85,12 +93,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun toggleMqttBroker() {
+    fun toggleMqttBroker(context: Context) {
         viewModelScope.launch {
             if(mqttBroker.running)
                 mqttBroker.stop()
             else
-                mqttBroker.start()
+                mqttBroker.start(context)
 
             _uiState.update { it.copy(brokerRunning = mqttBroker.running) }
         }
@@ -104,6 +112,12 @@ class SettingsViewModel @Inject constructor(
                 smsClient.start(context)
 
             _uiState.update { it.copy(smsClientRunning = smsClient.running) }
+        }
+    }
+
+    fun delete() {
+        viewModelScope.launch {
+            logRepository.deleteAll()
         }
     }
 

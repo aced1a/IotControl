@@ -1,11 +1,18 @@
 package com.iot.control.ui.devices
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -14,8 +21,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iot.control.R
-import com.iot.control.model.enums.DeviceType
-import com.iot.control.ui.dashboard.WidgetIcon
 import com.iot.control.ui.utils.TopBarDialog
 import com.iot.control.viewmodel.DeviceDetailUiState
 import com.iot.control.viewmodel.DeviceDetailViewModel
@@ -53,9 +58,10 @@ fun DeviceDialog(
                         eventDialog.value = true
 
                     }, addEvent = {
-                        deviceDetailViewModel.newEvent(it)
+                        deviceDetailViewModel.newEvent()
                         eventDialog.value = true
-                    }
+                    },
+                    deleteEvent = deviceDetailViewModel::deleteEvent
                 )
             },
             commandList = {
@@ -68,7 +74,8 @@ fun DeviceDialog(
                     addCommand = {
                         deviceDetailViewModel.newCommand(it)
                         commandDialog.value = true
-                    }
+                    },
+                    deleteCommand = deviceDetailViewModel::deleteCommand
                 )
             }
         )
@@ -77,7 +84,8 @@ fun DeviceDialog(
             CommandDialog(
                 dialogState,
                 stringResource(R.string.add_new_command, ""),
-                deviceDetailViewModel::updateDialogState ,
+                uiState.isMqtt,
+                deviceDetailViewModel::updateDialogState,
                 save = {
                     deviceDetailViewModel.saveCommand()
                     commandDialog.value = false
@@ -89,7 +97,8 @@ fun DeviceDialog(
             EventDialog(
                 dialogState,
                 stringResource(R.string.add_new_event, ""),
-                deviceDetailViewModel::updateDialogState ,
+                uiState.isMqtt,
+                deviceDetailViewModel::updateDialogState,
                 save = {
                     deviceDetailViewModel.saveEvent()
                     eventDialog.value = false
@@ -108,7 +117,6 @@ fun DeviceDialogBody(
     eventList: @Composable () -> Unit,
     commandList: @Composable () -> Unit
 ) {
-    val selectTypeDialogVisible = remember { mutableStateOf(false) }
 
     Surface(
         modifier = modifier,
@@ -130,22 +138,8 @@ fun DeviceDialogBody(
                     .padding(horizontal = 25.dp)
             )
 
-            DeviceTypeItem(
-                type = uiState.type,
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(horizontal = 40.dp)
-                    .width(200.dp),
-                callback = { selectTypeDialogVisible.value = true }
-            )
-
             commandList()
             eventList()
-
-            if(selectTypeDialogVisible.value)
-                CallSelectDeviceTypeDialog(selectTypeDialogVisible) {
-                    update(uiState.copy(type = it))
-                }
         }
     }
 }
@@ -161,63 +155,5 @@ fun CallDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         dialog()
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CallSelectDeviceTypeDialog(
-    visible: MutableState<Boolean>,
-    callback: (DeviceType) -> Unit
-) {
-    ModalBottomSheet(
-        onDismissRequest = { visible.value = false },
-        //properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        SelectDeviceTypeDialog(visible, callback)
-    }
-}
-
-@Composable
-fun SelectDeviceTypeDialog(
-    visible: MutableState<Boolean>,
-    callback: (DeviceType) -> Unit
-)
-{
-   Card(
-       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface) ,
-       shape = MaterialTheme.shapes.medium,
-       modifier = Modifier
-           .padding(all = 15.dp)
-    ) {
-        LazyColumn {
-            items(DeviceType.values()) { type ->
-                DeviceTypeItem(type, Modifier.fillMaxWidth()) {
-                    callback(it)
-                    visible.value = false
-                }
-            }
-            item {
-                Spacer(modifier = Modifier.height(70.dp))
-            }
-        }
-    }
-}
-
-@Composable
-fun DeviceTypeItem(
-    type: DeviceType,
-    modifier: Modifier = Modifier,
-    callback: (DeviceType) -> Unit
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .padding(all = 5.dp)
-            .clickable { callback(type) }
-    ) {
-        WidgetIcon(type)
-
-        Text(stringResource(type.nameId), style = MaterialTheme.typography.headlineSmall)
     }
 }

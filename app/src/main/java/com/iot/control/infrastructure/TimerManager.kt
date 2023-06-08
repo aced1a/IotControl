@@ -1,5 +1,6 @@
 package com.iot.control.infrastructure
 
+import android.util.Log
 import com.iot.control.infrastructure.repository.TimerRepository
 import com.iot.control.model.Timer as MyTimer
 import kotlinx.coroutines.MainScope
@@ -32,27 +33,36 @@ class TimerManager @Inject constructor(
     }
 
     fun stop() {
-        scheduler.cancel()
-        scheduler.purge()
+        try {
+            scheduler.cancel()
+            scheduler.purge()
+        } catch (_: Throwable) {}
     }
 
-    fun toggleTimer(timer: MyTimer) {
-        if(timers.containsKey(timer.id))
+    fun toggleTimer(timer: MyTimer): Boolean {
+        return if(timers.containsKey(timer.id)) {
             delete(timer)
-        else
+            false
+        } else {
             set(timer)
+            true
+        }
     }
 
     fun set(timer: MyTimer) {
+        Log.d("TimerManager", "Try set timer")
         if(timers.containsKey(timer.id)) return
 
         val task = object : TimerTask() {
             override fun run() {
+                Log.d("TimerManager", "Timer awake")
                 scriptManager.resolveTimerEvent(timer)
+                if(!timer.repeat) delete(timer)
             }
         }
 
         setTimerFor(timer, task)
+        timers[timer.id] = task
     }
 
     fun delete(timer: MyTimer) {
@@ -60,13 +70,17 @@ class TimerManager @Inject constructor(
             val task = timers[timer.id]
             task?.cancel()
             timers.remove(timer.id)
+            scheduler.purge()
         }
     }
 
     private fun setTimerFor(timer: MyTimer, action: TimerTask) {
-        if(timer.repeat)
-            scheduler.schedule(action, 1000, timer.interval * 60 * 1000L)
-        else
-            scheduler.schedule(action, timer.timer)
+        if(timer.date != null) {
+            if(timer.repeat)
+                scheduler.schedule(action, timer.date, timer.interval)
+            else
+                scheduler.schedule(action, timer.date)
+        } else if(timer.repeat)
+            scheduler.schedule(action, 1000, timer.interval)
     }
 }

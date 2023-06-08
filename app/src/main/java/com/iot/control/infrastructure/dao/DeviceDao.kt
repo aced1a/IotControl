@@ -17,12 +17,6 @@ interface DeviceDao {
     @Query("SELECT * FROM device WHERE mqtt_id = (:id) OR sms_id = (:id)")
     fun getByConnectionId(id: UUID): Flow<List<Device>>
 
-    @Query("SELECT * FROM device WHERE is_displayable = (:isDisplayable)")
-    fun getByDisplayableState(isDisplayable: Boolean): Flow<List<Device>>
-
-    @Query("SELECT * FROM device WHERE mqtt_id IS NULL AND sms_id IS NULL")
-    suspend fun getWidows(): List<Device>
-
     @Query("DELETE FROM device WHERE mqtt_id IS NULL AND sms_id IS NULL")
     suspend fun deleteWidows()
 

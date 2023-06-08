@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
+import com.iot.control.model.Script
 import com.iot.control.model.Timer
 import kotlinx.coroutines.flow.Flow
 
@@ -15,6 +16,9 @@ interface TimerDao {
 
     @Query("SELECT * FROM timer WHERE boot_init = 1")
     suspend fun getStartedOnBoot(): List<Timer>
+
+    @Query("SELECT * FROM timer JOIN script WHERE timer.id = script.timer_id")
+    fun getTimersMap(): Flow<Map<Timer, List<Script>>>
 
     @Insert
     suspend fun add(timer: Timer)

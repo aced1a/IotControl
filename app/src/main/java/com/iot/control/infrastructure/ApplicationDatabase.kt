@@ -6,7 +6,7 @@ import com.iot.control.infrastructure.dao.*
 import com.iot.control.model.*
 
 
-@Database(entities = [Device::class, Connection::class, Command::class, Event::class, Script::class, Timer::class, LogMessage::class], version = 1)
+@Database(entities = [Device::class, Connection::class, Command::class, Event::class, Script::class, Timer::class, LogMessage::class, Dashboard::class, Widget::class], version = 1)
 @androidx.room.TypeConverters(DbTypeConverters::class)
 abstract class ApplicationDatabase : RoomDatabase() {
     abstract fun deviceDao(): DeviceDao
@@ -17,4 +17,6 @@ abstract class ApplicationDatabase : RoomDatabase() {
 
     abstract fun logDao(): LogDao
     abstract fun timerDao(): TimerDao
+    abstract fun widgetDao(): WidgetDao
+    abstract fun dashboardDao(): DashboardDao
 }

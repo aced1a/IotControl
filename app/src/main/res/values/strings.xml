@@ -7,9 +7,11 @@
 
     <string name="on_command">On</string>
     <string name="off_command">Off</string>
-    <string name="sync_command">Synchronize</string>
+    <string name="sync_command">Sync command</string>
     <string name="set_command">Set</string>
-
+    
+    <string name="sync"> This is a synchronous command </string>
+    
     <string name="on_event">On</string>
     <string name="off_event">Off</string>
     <string name="set_event">Set</string>
@@ -37,6 +39,9 @@
     <string name="reconnection_text"> Try reconnect to %1$s </string>
     <string name="failed_connection_text"> Failed connection to %1$s </string>
 
+    <string name="failed_command"> Command failure </string>
+    <string name="failed_mqtt_command_text"> Failure on sending %1$s MQTT command </string>
+    <string name="failed_sms_command_text"> Failure on sending %1$s SMS command </string>
 
     <string name="failed_connection_label"> Failed connection </string>
     <string name="new_connection_label"> Create new connection </string>
@@ -47,6 +52,20 @@
     <string name="events_label"> Events </string>
     <string name="event_label"> Event </string>
     <string name="device_label"> Device </string>
+    <string name="timers_label"> Timers </string>
+    <string name="repeat_label"> Repeat </string>
+    <string name="on_boot_label"> Init on boot </string>
+
+    <string name="hms_format"> %1$d h. %2$d m. %3$d s. </string>
+    <string name="ms_format"> %1$d m. %2$d s. </string>
+    <string name="time_label"> Time </string>
+    <string name="interval_label"> Interval </string>
+
+    <string name="expanded_text"> Expanded </string>
+    <string name="type_label"> Type </string>
+    <string name="widget_label"> Widget </string>
+    <string name="widget_options"> Widget options </string>
+    <string name="new_dashboard"> New dashboard </string>
 
     <string name="add_new_command"> Add new %1$s command </string>
     <string name="add_new_event"> Add new %1$s event </string>
@@ -64,6 +83,17 @@
     <string name="devices_other"> Other devices </string>
     <string name="no_devices_found"> No devices found </string>
     <string name="change_connection"> Change connection for selected device? </string>
+
+    <string name="script_device_label"> Device: %1$s </string>
+    <string name="script_action_label"> Action: %1$s </string>
+    <string name="timer_label"> Timer </string>
+    <string name="new_timer_label"> New timer </string>
+    <string name="existing_label"> Existing </string>
+    <string name="date_label"> Date </string>
+    <string name="use_date_label"> Use date </string>
+    <string name="command_label"> Command </string>
+    <string name="msg_label"> Message </string>
+    <string name="history_label"> History </string>
 
     <string name="name_label">Name</string>
     <string name="ip_label">Ip</string>
@@ -89,11 +119,25 @@
     <string name="device_list_text">Open device list</string>
     <string name="json_payload_text">Payload is json</string>
 
-    <string name="light_type_label">Light</string>
-    <string name="dimlight_type_label">Light with dimming</string>
+    <string name="expire_time"> Expiration time </string>
+
+    <string name="value_type_label">Value</string>
+    <string name="color_type_label">Color</string>
     <string name="button_type_label">Button</string>
     <string name="switch_type_label">Switch</string>
     <string name="state_type_label">State</string>
+
+    <string name="format_label"> Format </string>
+    <string name="subtext_label"> Subtext </string>
+    <string name="icon_options"> Icon options </string>
+    <string name="icon_label"> Icon </string>
+    <string name="use_icon_text"> Use icon </string>
+
+    <string name="on_label"> On </string>
+    <string name="off_label"> Off </string>
+    <string name="widgets_label"> Widgets </string>
+
+    <string name="only_value"> It is answer on command </string>
 
     <string name="json_label">Json</string>
     <string name="plain_label">Plain</string>
@@ -112,4 +156,13 @@
     <string name="en"> English </string>
     <string name="ru"> Russian </string>
 
+    <string name="address_label"> Address </string>
+    <string name="language_label"> Language </string>
+
+    <string name="action_val"> Action value </string>
+    <string name="guard_val"> Guard value</string>
+    <string name="auth"> Authorization</string>
+    <string name="guard_place"> Guard: %1$s</string>
+    <string name="general"> General </string>
+    <string name="use_auto"> Possible options </string>
 </resources>

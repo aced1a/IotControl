@@ -8,11 +8,13 @@ import com.iot.control.infrastructure.ApplicationDatabase
 import com.iot.control.infrastructure.DbContext
 import com.iot.control.infrastructure.repository.CommandRepository
 import com.iot.control.infrastructure.repository.ConnectionRepository
+import com.iot.control.infrastructure.repository.DashboardRepository
 import com.iot.control.infrastructure.repository.DeviceRepository
 import com.iot.control.infrastructure.repository.EventRepository
 import com.iot.control.infrastructure.repository.LogRepository
 import com.iot.control.infrastructure.repository.ScriptRepository
 import com.iot.control.infrastructure.repository.TimerRepository
+import com.iot.control.infrastructure.repository.WidgetRepository
 import com.iot.control.infrastructure.sms.SmsSender
 import dagger.Module
 import dagger.Provides
@@ -81,7 +83,17 @@ object DatabaseModule {
     }
 
     @Provides
+    @Singleton fun provideWidgetRepository(database: ApplicationDatabase): WidgetRepository {
+        return WidgetRepository(database.widgetDao())
+    }
+
+    @Provides
     @Singleton fun provideLogRepository(database: ApplicationDatabase): LogRepository {
         return LogRepository((database.logDao()))
+    }
+
+    @Provides
+    @Singleton fun provideDashboardRepository(database: ApplicationDatabase): DashboardRepository {
+        return DashboardRepository(database.dashboardDao())
     }
 }

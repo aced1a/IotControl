@@ -8,6 +8,7 @@ import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Binder
@@ -30,8 +31,10 @@ import com.iot.control.infrastructure.mqtt.broker.BrokerAuthenticator
 import com.iot.control.infrastructure.repository.ConnectionRepository
 import com.iot.control.infrastructure.sms.SmsClient
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -42,8 +45,10 @@ class IotService : LifecycleService() {
     @Inject lateinit var mqttBroker: MqttBroker
     @Inject lateinit var smsClient: SmsClient
     @Inject lateinit var timerManager: TimerManager
+    @Inject lateinit var commandManager: CommandManager
 
     @Inject lateinit var notifications: com.iot.control.infrastructure.NotificationManager
+    @Inject lateinit var retryReceiver: RetryReceiver
 
     private var started = false
     private var isForeground = false
@@ -57,7 +62,10 @@ class IotService : LifecycleService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
 
+        Log.d(TAG, "Intent: ${intent?.action}")
         if(intent?.action == ACTION_STOP) {
+            this.unregisterReceiver(retryReceiver)
+
             lifecycleScope.launch {
                 mqttConnections.stop()
                 mqttBroker.stop()
@@ -67,16 +75,15 @@ class IotService : LifecycleService() {
         }
 
         if(started.not()) {
-            Log.d(TAG, "Start service")
             started = true
 
             setWakeLock()
             createNotificationChannel()
+            this.registerReceiver(retryReceiver, IntentFilter().apply { addAction(RETRY_INTENT) })
 
             lifecycleScope.launch {
                 BrokerAuthenticator.init(ConnectionRepository(database.connectionDao()))
                 mqttConnections.start()
-                mqttBroker.setup(this@IotService)
                 smsClient.start(this@IotService)
                 timerManager.init()
             }
@@ -90,6 +97,7 @@ class IotService : LifecycleService() {
 
         return START_STICKY
     }
+
 
     private fun setWakeLock() {
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.WAKE_LOCK) == PackageManager.PERMISSION_GRANTED)
@@ -149,20 +157,29 @@ class IotService : LifecycleService() {
         wakeLock?.let {
             if(it.isHeld) it.release()
         }
+
+        this.unregisterReceiver(retryReceiver)
+
+        lifecycleScope.launch {
+            mqttConnections.stop()
+            mqttBroker.stop()
+            smsClient.stop(this@IotService)
+            timerManager.stop()
+        }
+
         stopSelf()
     }
 
     private fun showForegroundNotification() {
         if(isForeground.not()) return
 
-//        createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildForegroundNotification())
     }
 
     private fun createNotificationChannel() {
         val notificationChannel = NotificationChannel(
             NOTIFICATION_CHANNEL_ID,
-            "IotService",
+            "Iot Control",
             NotificationManager.IMPORTANCE_DEFAULT
         )
 
@@ -196,7 +213,6 @@ class IotService : LifecycleService() {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .build()
-        //TODO("replace string to res id")
     }
 
     private fun showNotification(notification: MyNotification){
@@ -208,11 +224,13 @@ class IotService : LifecycleService() {
             val title = getNotificationTitle(notification)
             val message = getNotificationContent(notification)
 
-            val builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            var builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
                 .setSmallIcon(R.drawable.baseline_lightbulb_48)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+            if(notification.cmdId != null) builder = getRetryActions(builder, notification)
 
             with(NotificationManagerCompat.from(this)) {
                 notify(notification.id, builder.build())
@@ -230,6 +248,29 @@ class IotService : LifecycleService() {
         return notification.content ?: if(notification.arg != null) getString(notification.contentRes, notification.arg) else getString(notification.contentRes)
     }
 
+    private fun getRetryActions(builder: NotificationCompat.Builder, notification: MyNotification): NotificationCompat.Builder {
+
+        var updatedBuilder = builder
+
+        if(notification.mqtt)
+            updatedBuilder =  updatedBuilder.addAction(R.drawable.baseline_switch_left_12, "retry mqtt", createRetryIntent(notification, 1, true))
+
+        return updatedBuilder.addAction(R.drawable.baseline_switch_left_12, "Retry sms", createRetryIntent(notification, 2, false))
+    }
+
+    private fun createRetryIntent(notification: MyNotification, id: Int, mqtt: Boolean): PendingIntent {
+
+        return PendingIntent.getBroadcast(
+            this,
+            notification.id + id,
+            Intent(RETRY_INTENT).apply {
+                putExtra("id", notification.cmdId)
+                putExtra("value", notification.cmdValue)
+                putExtra("mqtt", mqtt)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
 
     private companion object {
         const val TAG = "IotService"
@@ -237,6 +278,7 @@ class IotService : LifecycleService() {
         const val NOTIFICATION_CHANNEL_ID = "IotService"
         const val UNBIND_DELAY_MILLIS = 1500L
         const val ACTION_STOP = BuildConfig.APPLICATION_ID + ".ACTION_STOP"
+        const val RETRY_INTENT = BuildConfig.APPLICATION_ID + ".RETRY_CMD"
     }
 
     internal inner class LocalBinder : Binder() {

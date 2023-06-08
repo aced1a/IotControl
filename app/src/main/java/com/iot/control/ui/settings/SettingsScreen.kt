@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -17,14 +18,15 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -33,12 +35,12 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iot.control.R
 import com.iot.control.model.LogMessage
+import com.iot.control.ui.utils.DashedDivider
 import com.iot.control.ui.utils.DropdownMenuField
 import com.iot.control.ui.utils.GeneralField
 import com.iot.control.ui.utils.TopBarDialog
 import com.iot.control.viewmodel.SettingsUiState
 import com.iot.control.viewmodel.SettingsViewModel
-import kotlin.math.exp
 
 @Composable
 fun SettingsScreen(
@@ -54,10 +56,11 @@ fun SettingsScreen(
         ConnectionsSettings(settingsViewModel, state, brokerDialog)
 
         SettingsFieldsGroup(
-            "General",
-            listOf {
-                LanguageSettings(settingsViewModel, state)
-            }
+            stringResource(R.string.general),
+            listOf(
+                { LanguageSettings(settingsViewModel, state) },
+                { LogSettings(state, settingsViewModel::delete) }
+            )
         )
     }
 
@@ -71,7 +74,7 @@ fun ConnectionsSettings(
     brokerDialog: MutableState<Boolean>
 ) {
     val context = LocalContext.current.applicationContext
-    settingsViewModel.updateLocale(context)
+    settingsViewModel.updateLocale()
 
     SettingsFieldsGroup(
         stringResource(R.string.connections),
@@ -84,7 +87,7 @@ fun ConnectionsSettings(
                 stringResource(R.string.enable_broker_text),
                 value = state.brokerRunning,
                 modifier = Modifier.clickable { brokerDialog.value = true },
-                onCheckedChange = { settingsViewModel.toggleMqttBroker() })},
+                onCheckedChange = { settingsViewModel.toggleMqttBroker(context) })},
             { SettingsSwitchField(
                 stringResource(R.string.enable_sms_text),
                 value = state.smsClientRunning,
@@ -108,7 +111,7 @@ fun LanguageSettings(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("Language", modifier = Modifier.padding(start = 10.dp))
+        Text(stringResource(R.string.language_label), modifier = Modifier.padding(start = 10.dp))
         Spacer(modifier = Modifier.width(50.dp))
         DropdownMenuField("", stringResource(state.locale), expanded) {
             settingsViewModel.languageList.forEach {
@@ -230,30 +233,101 @@ fun SettingsSwitchField(
 }
 
 @Composable
-fun LogDialog() {
+fun LogSettings(
+    state: SettingsUiState,
+    delete: () -> Unit
+) {
+    val dialog = remember { mutableStateOf(false) }
 
-    LazyColumn {}
+    Row(
+        modifier = Modifier
+            .padding(vertical = 5.dp)
+            .fillMaxWidth()
+            .clickable { dialog.value = true },
+        verticalAlignment = Alignment.CenterVertically
+    ){
+        Text(stringResource(R.string.history_label), modifier = Modifier.padding(start = 15.dp, top = 5.dp, bottom = 10.dp))
+    }
+
+    if(dialog.value) LogDialog(dialog, state, delete)
+}
+
+@Composable
+fun LogDialog(
+    open: MutableState<Boolean>,
+    state: SettingsUiState,
+    delete: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = { open.value = false },
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        TopBarDialog(title = stringResource(R.string.history_label), close = { open.value = false }, save = { open.value = false }) {
+            LazyColumn {
+                item {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TextButton(onClick = { delete() }) {
+                            Text(stringResource(R.string.delete_label), color = MaterialTheme.colorScheme.secondary)
+                        }
+                    }
+                    DashedDivider(modifier = Modifier.padding(bottom = 5.dp))
+                }
+                items(state.logs) { log ->
+                    LogRow(log)
+                    DashedDivider()
+                }
+            }
+        }
+    }
 }
 
 @Composable
 fun LogRow(message: LogMessage) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    var expanded by remember { mutableStateOf(false) }
 
+    Column(
+        horizontalAlignment = Alignment.Start,
+        modifier = Modifier
+            .padding(horizontal = 5.dp)
+            .fillMaxWidth()
+            .clickable { expanded = !expanded }
     ) {
         Text(message.date.toString(), color = MaterialTheme.colorScheme.secondary)
 
-        if(message.event) {
-            if(message.resolved)
-                Text("Получено событие: ")
-            else
-                Text("Новое сообщение: ")
-        } else
-            Text("Отправлена команда: ")
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text(
+                getString(message),
+                color = MaterialTheme.colorScheme.secondary
+            )
+            if(message.resolved) Text(message.name.toString())
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text(stringResource(R.string.address_label), color = MaterialTheme.colorScheme.secondary)
+            Text(message.address ?: "-")
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text(stringResource(R.string.topic_label), color = MaterialTheme.colorScheme.secondary)
+            Text(message.topic ?: "-")
+        }
 
-        Text(message.address)
-        Text(message.topic)
-
-        Text(message.success.toString())
+    if(expanded)
+        Text(message.message, modifier = Modifier.align(Alignment.CenterHorizontally))
     }
+}
+
+@Composable
+fun getString(message: LogMessage): String {
+    return if(message.resolved)
+        if(message.event) stringResource(R.string.event_label) else stringResource(R.string.command_label)
+    else
+        stringResource(R.string.msg_label)
 }

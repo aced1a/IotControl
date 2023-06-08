@@ -37,6 +37,9 @@
     <string name="reconnection_text"> Переподключение к %1$s </string>
     <string name="failed_connection_text"> Неудалось подключиться к %1$s </string>
 
+    <string name="failed_command"> Не удалось отправить команду </string>
+    <string name="failed_mqtt_command_text"> Не удалось отправить %1$s MQTT команды </string>
+    <string name="failed_sms_command_text"> Не удалось отправить %1$s SMS команду </string>
 
     <string name="failed_connection_label"> Подключение не удалось </string>
     <string name="new_connection_label"> Новое подключение </string>
@@ -86,11 +89,11 @@
     <string name="delete_label">Удалить</string>
     <string name="accept_label">Принять</string>
 
+    <string name="sync"> Сихнронная команда </string>
+
     <string name="device_list_text">Открыть список устройств</string>
     <string name="json_payload_text">Нагрузка это json</string>
 
-    <string name="light_type_label">Лампочка</string>
-    <string name="dimlight_type_label">Лампочка с диммированием</string>
     <string name="button_type_label">Кнопка</string>
     <string name="switch_type_label">Переподключение</string>
     <string name="state_type_label">Состояние</string>
@@ -111,4 +114,57 @@
 
     <string name="en"> Английский </string>
     <string name="ru"> Русский </string>
+
+    <string name="timers_label"> Таймеры </string>
+    <string name="repeat_label"> Повтор </string>
+    <string name="on_boot_label"> Запустить при загрузке </string>
+
+    <string name="hms_format"> %1$d ч. %2$d м. %3$d с. </string>
+    <string name="ms_format"> %1$d м. %2$d с. </string>
+    <string name="time_label"> Время </string>
+    <string name="interval_label"> Interval </string>
+
+    <string name="expanded_text"> Расширенный </string>
+    <string name="type_label"> Тип </string>
+    <string name="widget_label"> Виджет </string>
+    <string name="widget_options"> Настройки виджета </string>
+    <string name="new_dashboard"> Новая панель </string>
+
+    <string name="script_device_label"> Устройство: %1$s </string>
+    <string name="script_action_label"> Действие: %1$s </string>
+    <string name="timer_label"> Таймер </string>
+    <string name="new_timer_label"> Новый таймер </string>
+    <string name="existing_label"> Существующий </string>
+    <string name="date_label"> Дата </string>
+    <string name="use_date_label"> Использовать дату </string>
+    <string name="command_label"> Команда </string>
+    <string name="msg_label"> Сообщение </string>
+    <string name="history_label"> История </string>
+
+    <string name="expire_time"> Время истечения </string>
+
+    <string name="value_type_label">Значение</string>
+    <string name="color_type_label">Цвет</string>
+
+
+    <string name="format_label"> Формат </string>
+    <string name="subtext_label"> Подтекст </string>
+    <string name="icon_options"> Настройки иконки </string>
+    <string name="icon_label"> Иконка </string>
+    <string name="use_icon_text"> Использовать иконку </string>
+
+    <string name="on_label"> Вкл </string>
+    <string name="off_label"> Выкл </string>
+    <string name="widgets_label"> Виджеты </string>
+
+    <string name="only_value"> Это ответ на команду </string>
+    <string name="address_label"> Адрес </string>
+    <string name="language_label"> Язык </string>
+
+    <string name="action_val"> Аргумент команды </string>
+    <string name="guard_val"> Аргумент условия </string>
+    <string name="auth"> Авторизация </string>
+    <string name="guard_place"> Условие: %1$s</string>
+    <string name="general"> Общие </string>
+    <string name="use_auto"> Возможные варианты </string>
 </resources>

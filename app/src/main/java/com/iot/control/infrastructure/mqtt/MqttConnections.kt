@@ -29,6 +29,18 @@ class MqttConnections @Inject constructor(
     fun has(key: String) = connections.containsKey(key)
     fun get(key: String) = connections[key]
 
+    fun toggle(connection: Connection): Boolean {
+        val client = get(connection.address)
+
+        return if(client == null) {
+            connect(connection)
+            true
+        } else {
+            disconnect(connection.address)
+            false
+        }
+    }
+
     suspend fun start() {
         Log.d(TAG, "Starting mqtt connections")
         for(connection in connectionRepository.getByType(ConnectionType.MQTT)) {
@@ -47,6 +59,7 @@ class MqttConnections @Inject constructor(
 
     fun connect(connection: Connection): MqttClient? {
         if(connections.containsKey(connection.address)) return get(connection.address);
+        if(connection.address.isEmpty()) return null
 
         Log.d(TAG, "Try connect to ${connection.address}")
 

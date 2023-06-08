@@ -63,8 +63,11 @@ class Mqtt5Client(
     }
 
     override fun disconnect() {
-        if(client.state.isConnectedOrReconnect)
+        if(client.state.isConnectedOrReconnect) {
+            wasConnected = false
+            counter = 99
             client.toAsync().disconnect()
+        }
     }
 
     override fun publish(

@@ -5,6 +5,7 @@ import android.os.Environment
 import android.util.Log
 import com.iot.control.infrastructure.EventManager
 import com.iot.control.infrastructure.NotificationManager
+import com.iot.control.model.Connection
 import io.moquette.BrokerConstants
 import io.moquette.broker.Server
 import io.moquette.broker.config.MemoryConfig
@@ -30,7 +31,6 @@ import javax.inject.Singleton
 @Singleton
 class MqttBroker @Inject constructor(
     private val eventManager: EventManager,
-//    private val notificationManager: NotificationManager
 ) {
     companion object {
         const val ADDRESS = "localhost"
@@ -51,12 +51,25 @@ class MqttBroker @Inject constructor(
 
     fun has(username: String?): Boolean = username != null && clients.contains(username)
 
-
     var running: Boolean = false
         private set
 
-    fun setup(context: Context) {
-//        tryLoadPreferences(context)
+    fun start(context: Context) {
+        if(running) return
+
+        try {
+            running = true
+            tryLoadPreferences(context)
+
+            Log.d(TAG, "${properties[BrokerConstants.AUTHENTICATOR_CLASS_NAME]}")
+
+            val config = MemoryConfig(properties)
+            server.startServer(config, listOf(InterceptHandler()))
+
+        } catch (e: Exception) {
+            running = false
+            Log.d(TAG, "Failure on broker start: ${e.message}")
+        }
     }
 
     private fun tryLoadPreferences(context: Context) {
@@ -74,22 +87,7 @@ class MqttBroker @Inject constructor(
         catch (_: Exception) {}
     }
 
-    fun start() {
-        if(running) return
 
-        try {
-            running = true
-
-            Log.d(TAG, "${properties[BrokerConstants.AUTHENTICATOR_CLASS_NAME]}")
-
-            val config = MemoryConfig(properties)
-            server.startServer(config, listOf(InterceptHandler()))
-
-        } catch (e: Exception) {
-            running = false
-            Log.d(TAG, "Failure on broker start: ${e.message}")
-        }
-    }
     fun stop() {
         if(running) {
             server.stopServer()

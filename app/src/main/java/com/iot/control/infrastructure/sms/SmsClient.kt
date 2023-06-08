@@ -11,6 +11,7 @@ import com.iot.control.infrastructure.EventManager
 import com.iot.control.infrastructure.NotificationManager
 import com.iot.control.infrastructure.repository.DeviceRepository
 import com.iot.control.model.Command
+import com.iot.control.model.enums.CommandMode
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import java.util.LinkedList
@@ -25,7 +26,9 @@ data class CommandRecord(
     val command: Command,
     var message: String?,
     var time: Long = System.currentTimeMillis() + SmsClient.ExpireTime,
-    val number: String
+    val number: String,
+    val value: String? = null,
+    val expired: Long = SmsClient.ExpireTime
 )
 
 @Singleton
@@ -43,54 +46,84 @@ class SmsClient @Inject constructor(
 
     private val sent: MutableMap<String, CommandRecord> = mutableMapOf()
     private val queue: MutableMap<String, Queue<CommandRecord>> = mutableMapOf()
-    private val schedule: Timer = Timer()
+    private var schedule: Timer = Timer()
+    private var timerRunning = false
 
     private fun initTimer() {
-        schedule.schedule(timerTask, 1000, ExpireTime)
-    }
+        if(!timerRunning) {
 
-    private val timerTask = object : TimerTask() {
-        override fun run() {
-            val time = System.currentTimeMillis()
+            val timerTask = object : TimerTask() {
+                override fun run() {
+                    val time = System.currentTimeMillis()
+                    var empty = true
 
-            for(item in sent.entries)
-                if(item.value.time >= time) sent.remove(item.key)
+                    for(item in sent.entries)
+                        if(item.value.time <= time) {
+                            notificationManager.retrySms(item.value.command, item.value.value)
+                            sent.remove(item.key)
+                        }
 
-            for(item in queue.values) {
-                val head = item.peek()
-                if(head != null && head.time >= time) {
-                    sendNext()
+                    for(item in queue.values) {
+                        val head = item.peek()
+                        if(head != null && head.time <= time) {
+                            sendNext(head.number)
+                        }
+                        empty = empty and item.isEmpty()
+                    }
+                    if(sent.isEmpty() && empty) stopTimer()
                 }
             }
+
+            schedule = Timer()
+            schedule.schedule(timerTask, 1000, ExpireTime)
+            timerRunning = true
         }
     }
 
-    fun send(number: String, command: Command) {
-        if(command.isSync) {
+    private fun stopTimer() {
+        if(timerRunning) {
+
+            schedule.cancel()
+            schedule.purge()
+
+            timerRunning = false
+        }
+    }
+
+    fun send(number: String, command: Command, value: String?, expired: Long) {
+        if(command.mode == CommandMode.Async) {
+            sendAndSave(number, command, value, expired)
+        } else {
             if(queue.containsKey(number).not()) queue[number] = LinkedList()
 
             if(queue[number]?.isEmpty() == true) {
-               sendAndSave(number, command)
+                sendAndSave(number, command, value, expired)
             }
 
-            queue[number]?.add(CommandRecord(command = command, message = null, number = number))
-        } else {
-            sendAndSave(number, command)
+            queue[number]?.add(CommandRecord(
+                command = command,
+                message = null,
+                number = number,
+                value = value,
+                expired = expired,
+                time = System.currentTimeMillis() + expired
+            ))
         }
+        initTimer()
     }
 
-    private fun sendAndSave(number: String, command: Command) {
+    private fun sendAndSave(number: String, command: Command, value: String?, expired: Long) {
         val id = command.id.toString()
         if(sender.send(id, number, command.payload)) {
-            sent[id] = CommandRecord(command = command, message = null, number = number)
+            sent[id] = CommandRecord(command = command, message = null, number = number, value = value, expired = expired, time = System.currentTimeMillis() + expired)
         }
     }
 
     private fun receive(number: String, payload: String) {
         val onFail = {
-            val command = queue[number]?.poll()
+            val command = sendNext(number)
 
-            if(command != null && command.time > (System.currentTimeMillis() + ExpireTime))
+            if(command != null && command.time > System.currentTimeMillis())
                 command
             else
                 null
@@ -101,31 +134,42 @@ class SmsClient @Inject constructor(
         }
     }
 
-    private fun sendNext() {
+    private fun sendNext(number: String): CommandRecord? {
+        val returned = queue[number]?.poll()
 
+        var head = queue[number]?.peek()
+
+        if(head != null) {
+            head.time = System.currentTimeMillis() + head.expired
+            sendAndSave(head.number, head.command, head.value, head.expired)
+        }
+        return returned
     }
 
     private fun delivered(id: String, success: Boolean) {
-        val command = sent[id] ?: return
+        val record = sent[id] ?: return
 
         sent.remove(id)
         if(success) {
-            updateOnSuccess(command.number, command.command)
+            updateOnSuccess(record.number, record.command)
         } else {
-
+            val command = record.command
+            Log.d(TAG, "Failure on deliver sms command: ${command.type.name}")
+            if(command.mode != CommandMode.Async) sendNext(record.number)
+            notificationManager.retrySms(command, record.value)
         }
     }
 
     private fun updateOnSuccess(number: String, command: Command) {
-        if(command.isSync) {
+        if(command.mode == CommandMode.Async) {
+            MainScope().launch {
+                deviceRepository.updateByCommand(command.deviceId, command, null)
+            }
+        } else {
             val message =  queue[number]?.peek() ?: return
-            if(message.command.id == command.id) message.time = System.currentTimeMillis() + ExpireTime
-
-        } else MainScope().launch {
-            deviceRepository.updateByCommand(command.deviceId, command, null)
+            if(message.command.id == command.id) message.time = System.currentTimeMillis() + message.expired
         }
     }
-
 
 
     fun start(context: Context) {
@@ -142,6 +186,7 @@ class SmsClient @Inject constructor(
             context.registerReceiver(receiver, smsIntent)
             context.registerReceiver(deliveryReceiver, deliveryIntent)
 
+//            initTimer()
             Log.d(TAG, "Receiver has been registered")
         }
     }
@@ -151,8 +196,14 @@ class SmsClient @Inject constructor(
             Log.d(TAG, "Stopping sms client")
             running = false
 
-            context.unregisterReceiver(receiver)
-            context.unregisterReceiver(deliveryReceiver)
+            try {
+                context.unregisterReceiver(receiver)
+                context.unregisterReceiver(deliveryReceiver)
+            } catch (_ : Exception) {}
+            stopTimer()
+
+            queue.clear()
+            sent.clear()
         }
     }
 
@@ -161,7 +212,7 @@ class SmsClient @Inject constructor(
     }
 
     companion object {
-        const val ExpireTime = 60 * 1000L
+        const val ExpireTime = 8 * 1000L
         const val DELIVER_ACTION = "DELIVER_ACTION"
         const val TAG = "SmsClient"
     }

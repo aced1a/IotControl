@@ -1,28 +1,43 @@
 package com.iot.control.ui.connections
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.*
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.iot.control.R
-import com.iot.control.infrastructure.mqtt.client.MqttClient
 import com.iot.control.model.enums.ConnectionMode
 import com.iot.control.model.enums.ConnectionType
-import com.iot.control.ui.theme.IotControlTheme
 import com.iot.control.ui.utils.DropdownMenuField
+import com.iot.control.ui.utils.DurablePicker
+import com.iot.control.ui.utils.GeneralField
+import com.iot.control.ui.utils.LabeledValue
 import com.iot.control.ui.utils.TopBarDialog
 import com.iot.control.viewmodel.ConnectionDialogState
 
@@ -186,19 +201,21 @@ fun GenericMqttFields(
     onUpdate: (ConnectionDialogState) -> Unit
 )
 {
-    OutlinedTextField(
-        value = dialogState.username,
-        label = { Text(stringResource(R.string.username_label)) },
-        onValueChange = { onUpdate(dialogState.copy(username = it)) },
-        modifier = Modifier.fillMaxWidth())
+    GeneralField(title = stringResource(R.string.auth)) {
+        OutlinedTextField(
+            value = dialogState.username,
+            label = { Text(stringResource(R.string.username_label)) },
+            onValueChange = { onUpdate(dialogState.copy(username = it)) },
+            modifier = Modifier.fillMaxWidth())
 
-    OutlinedTextField(
-        value = dialogState.password,
-        label = { Text(stringResource(R.string.password_label)) },
-        onValueChange = { onUpdate(dialogState.copy(password = it)) },
-        keyboardOptions = KeyboardOptions(keyboardType=KeyboardType.Password),
-        modifier = Modifier.fillMaxWidth()
-    )
+        OutlinedTextField(
+            value = dialogState.password,
+            label = { Text(stringResource(R.string.password_label)) },
+            onValueChange = { onUpdate(dialogState.copy(password = it)) },
+            keyboardOptions = KeyboardOptions(keyboardType=KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }
 
 @Composable
@@ -206,6 +223,8 @@ fun SmsFields(
     dialogState: ConnectionDialogState,
     onUpdate: (ConnectionDialogState) -> Unit
 ) {
+    val visible = remember { mutableStateOf(false) }
+
     OutlinedTextField(
         value = dialogState.address,
         label = { Text(stringResource(R.string.number_label)) },
@@ -222,13 +241,25 @@ fun SmsFields(
         maxLines = 3,
         modifier = Modifier.fillMaxWidth()
     )
-}
 
-@Preview
-@Composable
-fun PreviewConnectionDialog()
-{
-    IotControlTheme {
-        ConnectionDialog(dialogState = ConnectionDialogState(), onUpdate = {}, {}, remember { mutableStateOf(true) }, Modifier)
+    LabeledValue(
+        stringResource(R.string.expire_time),
+        stringResource(R.string.ms_format, dialogState.minutes, dialogState.secs),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        IconButton(onClick = { visible.value = true }) {
+            Icon(
+                painter = painterResource(R.drawable.baseline_timer_24),
+                contentDescription = "Expire time picker")
+        }
     }
+
+   DurablePicker(
+       visible,
+       null,
+       dialogState.minutes,
+       dialogState.secs,
+   ) { _, minute, second ->
+       onUpdate(dialogState.copy(minutes = minute, secs = second))
+   }
 }

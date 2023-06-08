@@ -13,5 +13,5 @@ class LogRepository(val dao: LogDao) {
 
     suspend fun delete(message: LogMessage) = dao.delete(message)
 
-    fun deleteAll() {}
+    suspend fun deleteAll() = dao.deleteAll()
 }

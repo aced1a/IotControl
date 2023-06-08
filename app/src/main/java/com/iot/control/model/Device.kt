@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.ForeignKey.Companion.SET_NULL
 import androidx.room.PrimaryKey
-import com.iot.control.model.enums.DeviceType
+import com.iot.control.model.enums.WidgetType
 import java.util.UUID
 
 @Entity(foreignKeys = [
@@ -15,23 +15,11 @@ import java.util.UUID
 data class Device(@PrimaryKey val id: UUID = UUID.randomUUID(),
                   val name: String,
                   val value: String,
-                  val type: DeviceType,
                   @ColumnInfo(name="is_displayable") val idDisplayable: Boolean,
                   @ColumnInfo(name="mqtt_id", index = true) val mqttConnectionId: UUID?,
                   @ColumnInfo(name="sms_id", index = true) val smsConnectionId: UUID?) {
     companion object {
         const val ON = "ON"
         const val OFF = "OFF"
-
-        fun getDefaultDevice(): Device {
-            return Device(
-                name = "",
-                value = "OFF",
-                type = DeviceType.Light,
-                idDisplayable = true,
-                mqttConnectionId = null,
-                smsConnectionId = null
-            )
-        }
     }
 }

@@ -2,9 +2,10 @@ package com.iot.control.infrastructure
 
 import androidx.room.TypeConverter
 import com.iot.control.model.enums.CommandAction
+import com.iot.control.model.enums.CommandMode
 import com.iot.control.model.enums.ConnectionMode
 import com.iot.control.model.enums.ConnectionType
-import com.iot.control.model.enums.DeviceType
+import com.iot.control.model.enums.WidgetType
 import com.iot.control.model.enums.EventType
 import java.util.*
 
@@ -16,10 +17,10 @@ class DbTypeConverters {
     fun fromUUID(uuid: UUID?): String? = uuid?.toString()
 
     @TypeConverter
-    fun toDeviceType(type: Int): DeviceType = DeviceType.fromInt(type)
+    fun toDeviceType(type: Int): WidgetType = WidgetType.fromInt(type)
 
     @TypeConverter
-    fun fromDeviceType(type: DeviceType): Int = type.ordinal
+    fun fromDeviceType(type: WidgetType): Int = type.ordinal
 
     @TypeConverter
     fun toCommandAction(action: Int): CommandAction = CommandAction.fromInt(action)
@@ -40,14 +41,20 @@ class DbTypeConverters {
     fun fromConnectionType(type: ConnectionType): Int = type.ordinal
 
     @TypeConverter
-    fun fromDate(date: Date): Long = date.time
+    fun fromDate(date: Date?): Long = date?.time ?: 0L
 
     @TypeConverter
-    fun toDate(time: Long): Date = Date(time)
+    fun toDate(time: Long): Date? = if(time == 0L) null else Date(time)
 
     @TypeConverter
     fun fromConnectionMode(mode: ConnectionMode): Int = mode.ordinal
 
     @TypeConverter
     fun toConnectionMode(mode: Int): ConnectionMode = ConnectionMode.fromInt(mode)
+
+    @TypeConverter
+    fun fromCommandMode(mode: CommandMode): Int = mode.ordinal
+
+    @TypeConverter
+    fun toCommandMode(mode: Int): CommandMode = CommandMode.fromInt(mode)
 }

@@ -3,7 +3,6 @@ package com.iot.control.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.iot.control.infrastructure.Notification
 import com.iot.control.infrastructure.mqtt.MqttConnections
 import com.iot.control.infrastructure.repository.CommandRepository
 import com.iot.control.infrastructure.repository.ConnectionRepository
@@ -14,8 +13,9 @@ import com.iot.control.model.Connection
 import com.iot.control.model.Device
 import com.iot.control.model.Event
 import com.iot.control.model.enums.CommandAction
+import com.iot.control.model.enums.CommandMode
 import com.iot.control.model.enums.ConnectionType
-import com.iot.control.model.enums.DeviceType
+import com.iot.control.model.enums.WidgetType
 import com.iot.control.model.enums.EventType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
@@ -31,21 +31,29 @@ data class Marked<T>(val item: T, val isNew: Boolean)
 
 data class DeviceDetailUiState(
     val name: String = "",
-    val type: DeviceType = DeviceType.Light,
+    val type: WidgetType = WidgetType.State,
+    val isMqtt: Boolean = true,
 
     val commands: List<Marked<Command>> = emptyList(),
-    val events: List<Marked<Event>> = emptyList())
+    val events: List<Marked<Event>> = emptyList(),
+    val deletedCommands: MutableList<Command> = mutableListOf(),
+    val deletedEvents: MutableList<Event> = mutableListOf()
+)
 
 data class DialogUiState(
     val id: UUID? = null,
-    val action: CommandAction = CommandAction.ON,
-    val type: EventType = EventType.ON,
+    val action: CommandAction = CommandAction.On,
+    val type: EventType = EventType.On,
     val topic: String = "",
     val payload: String = "",
     val isJson: Boolean = false,
     val notify: Boolean = true,
     val notification: String = "",
-    val dataField: String = "")
+    val dataField: String = "",
+    val isSync: Boolean = false,
+    val syncMode: CommandMode = CommandMode.Set,
+    val onlyValue: Boolean = false
+)
 
 
 @HiltViewModel
@@ -77,6 +85,23 @@ class DeviceDetailViewModel @Inject constructor(
         loadDeviceDetail()
     }
 
+    private fun searchSimilarPayload(isCommand: Boolean, isMqtt: Boolean) {
+        viewModelScope.launch {
+            if(isMqtt) {
+                if(isCommand) {
+                    commandRepository.getByConnectionAndTopic(connectionId, dialogState.value.topic, dialogState.value.action)
+                }
+                else {
+                    eventRepository.getByConnectionAndTopic(connectionId, dialogState.value.topic, dialogState.value.type)
+                }
+            } else {
+                //search for connection/device
+            }
+
+            //search in history (address/topic)
+        }
+    }
+
     private fun loadDeviceDetail()
     {
         viewModelScope.launch {
@@ -86,11 +111,11 @@ class DeviceDetailViewModel @Inject constructor(
                 device = Device(
                     name = "",
                     value = "OFF",
-                    type = DeviceType.Light,
                     idDisplayable = true,
                     mqttConnectionId = if(connection.type.value() == ConnectionType.MQTT) connection.id else null,
                     smsConnectionId =  if(connection.type == ConnectionType.SMS) connection.id else null
                 )
+                _uiState.update { it.copy(isMqtt = (connection.type != ConnectionType.SMS)) }
                 return@launch
             }
 
@@ -104,8 +129,8 @@ class DeviceDetailViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(
+                    isMqtt = (connection.type != ConnectionType.SMS),
                     name = device.name,
-                    type = device.type,
                     commands = commands,
                     events = events
                 )
@@ -125,8 +150,7 @@ class DeviceDetailViewModel @Inject constructor(
     {
         device = device.copy(
             name = uiState.value.name,
-            type = uiState.value.type,
-            value = uiState.value.type.default
+            value = ""
         )
         val client = if(connection.type == ConnectionType.MQTT) mqttConnections.get(connection.address) else null
 
@@ -143,6 +167,9 @@ class DeviceDetailViewModel @Inject constructor(
                 else eventRepository.update(event.item)
                 client?.subscribe(event.item.topic)
             }
+
+            for(command in uiState.value.deletedCommands) commandRepository.delete(command)
+            for(event in uiState.value.deletedEvents) eventRepository.delete(event)
         }
     }
 
@@ -161,7 +188,9 @@ class DeviceDetailViewModel @Inject constructor(
                 topic = command.topic,
                 payload = command.payload,
                 isJson = command.isJson,
-                dataField = command.dataField ?: ""
+                dataField = command.dataField ?: "",
+                isSync = command.mode != CommandMode.Async,
+                syncMode = if(command.mode == CommandMode.Async) CommandMode.Set else command.mode
             )
         }
     }
@@ -175,7 +204,7 @@ class DeviceDetailViewModel @Inject constructor(
             payload = dialogState.value.payload,
             isJson = dialogState.value.isJson,
             dataField = dialogState.value.dataField.ifEmpty { null },
-            isSync = false,
+            mode = if(dialogState.value.isSync) dialogState.value.syncMode else CommandMode.Async,
             deviceId = device.id,
             connectionId = connectionId)
 
@@ -188,9 +217,9 @@ class DeviceDetailViewModel @Inject constructor(
     }
 
 
-    fun newEvent(type: EventType) {
+    fun newEvent() {
         _dialogState.update {
-            DialogUiState(type = type)
+            DialogUiState()
         }
     }
     fun editEvent(event: Event) {
@@ -203,7 +232,8 @@ class DeviceDetailViewModel @Inject constructor(
                 isJson = event.isJson,
                 dataField = event.dataField ?: "",
                 notify = event.notify,
-                notification = event.notification ?: ""
+                notification = event.notification ?: "",
+                onlyValue = event.isolated
             )
         }
     }
@@ -218,7 +248,7 @@ class DeviceDetailViewModel @Inject constructor(
             dataField = dialogState.value.dataField.ifEmpty { null },
             connectionId = connectionId,
             deviceId = device.id,
-            isSync = false,
+            isolated = dialogState.value.onlyValue,
             notify = dialogState.value.notify,
             notification = dialogState.value.notification.ifEmpty { null }
         )
@@ -230,8 +260,21 @@ class DeviceDetailViewModel @Inject constructor(
         }
     }
 
-    fun deleteCommand() {}
-    fun deleteEvent() {}
+    fun deleteCommand(command: Marked<Command>) {
+        _uiState.update {
+            it.copy(commands = _uiState.value.commands.minus(command))
+        }
+        if(!command.isNew) _uiState.value.deletedCommands.add(command.item)
+
+    }
+    fun deleteEvent(event: Marked<Event>) {
+
+        _uiState.update {
+            it.copy(events = _uiState.value.events.minus(event))
+        }
+        if(!event.isNew) _uiState.value.deletedEvents.add(event.item)
+
+    }
 
     companion object {
         const val TAG = "DeviceDetailViewModel"

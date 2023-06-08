@@ -68,7 +68,6 @@ class DevicesViewModel @Inject constructor(
     }
 
     fun loadExistingDevices() {
-        //TODO("Refactor")
         viewModelScope.launch {
             val devices = deviceRepository.getAll()
             val filter: (Device) -> Boolean =

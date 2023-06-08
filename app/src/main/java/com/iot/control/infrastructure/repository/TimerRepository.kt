@@ -9,6 +9,8 @@ class TimerRepository(val dao: TimerDao) {
 
     suspend fun getStartedOnBoot() = dao.getStartedOnBoot()
 
+    fun getTimersMap() = dao.getTimersMap()
+
     suspend fun add(timer: Timer) = dao.add(timer)
 
     suspend fun update(timer: Timer) = dao.update(timer)

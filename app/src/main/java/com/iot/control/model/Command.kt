@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 import com.iot.control.model.enums.CommandAction
+import com.iot.control.model.enums.CommandMode
 import com.iot.control.model.enums.ConnectionType
 import java.util.UUID
 
@@ -15,10 +16,9 @@ import java.util.UUID
 data class Command(@PrimaryKey val id: UUID = UUID.randomUUID(),
                    val topic: String,
                    val payload: String,
-                   val action: CommandAction = CommandAction.ON,
+                   val action: CommandAction = CommandAction.On,
                    val type: ConnectionType = ConnectionType.MQTT,
-                   val mode: Int = -1,
-                   @ColumnInfo(name="is_sync") val isSync: Boolean,
+                   val mode: CommandMode = CommandMode.Async,
                    @ColumnInfo(name="connection_id", index = true) val connectionId: UUID,
                    @ColumnInfo(name="device_id", index=true) val deviceId: UUID,
                    @ColumnInfo(name="is_json") val isJson: Boolean,

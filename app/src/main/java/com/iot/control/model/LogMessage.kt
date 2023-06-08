@@ -13,9 +13,8 @@ data class LogMessage(
     val resolved: Boolean = false,
     val event: Boolean = true,
 
-    val address: String,
-    val topic: String,
+    val name: String? = null,
+    val address: String? = null,
+    val topic: String? = null,
     val message: String,
-
-    val success: Boolean = true
 )

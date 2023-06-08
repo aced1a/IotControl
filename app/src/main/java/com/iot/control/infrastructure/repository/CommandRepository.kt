@@ -13,6 +13,8 @@ class CommandRepository(private val dao: CommandDao) {
 
     suspend fun getByConnectionId(id: UUID) = dao.getByConnectionId(id)
 
+    suspend fun getByConnectionAndTopic(connectionId: UUID, topic: String, action: CommandAction) = dao.getByConnectionAndTopic(connectionId, topic, action)
+
     suspend fun getById(id: UUID) = dao.getById(id)
 
     suspend fun add(command: Command) = dao.add(command)

@@ -2,6 +2,7 @@ package com.iot.control.infrastructure
 
 import com.iot.control.R
 import com.iot.control.infrastructure.repository.DeviceRepository
+import com.iot.control.model.Command
 import com.iot.control.model.Device
 import com.iot.control.model.Event
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,18 +20,51 @@ data class Notification(
     val content: String? = null,
     val titleRes: Int = 0,
     val contentRes: Int = 0,
-    val arg: String? = null
+    val arg: String? = null,
+
+    val cmdId: String? = null,
+    val mqtt: Boolean = true,
+    val cmdValue: String? = null,
 )
 
 @Singleton
 class NotificationManager @Inject constructor() {
+    private val random = Random(System.currentTimeMillis())
 
     private val _notifications = MutableStateFlow(Notification(title = "Application started", content = ""))
     val notifications: StateFlow<Notification> = _notifications.asStateFlow()
 
+    fun retryMqtt(command: Command, value: String?) {
+        val notification = Notification(
+            id = random.nextInt(),
+            titleRes = R.string.failed_command,
+            contentRes = R.string.failed_mqtt_command_text,
+            arg = command.action.name,
+            cmdId = command.id.toString(),
+            mqtt = true,
+            cmdValue = value
+        )
+
+        _notifications.update { notification }
+    }
+
+    fun retrySms(command: Command, value: String?) {
+        val notification = Notification(
+            id = random.nextInt(),
+            titleRes = R.string.failed_command,
+            contentRes = R.string.failed_sms_command_text,
+            arg = command.action.name,
+            cmdId = command.id.toString(),
+            mqtt = false,
+            cmdValue = value
+        )
+
+        _notifications.update { notification }
+    }
+
     fun notify(title: Int, message: Int, arg: String?) {
         val notification = Notification(
-            id = Random().nextInt(),
+            id = random.nextInt(),
             titleRes = title,
             contentRes = message,
             arg = arg
@@ -41,20 +75,9 @@ class NotificationManager @Inject constructor() {
 
     fun notify(title: String, message: String) {
         val notification = Notification(
-            id = Random().nextInt(),
+            id = random.nextInt(),
             title = title,
             content = message
-        )
-
-        _notifications.update { notification }
-    }
-
-    private fun notify(device: Device, event: Event) {
-        //TODO string to resource id
-        val notification = Notification(
-            id = Random().nextInt(),
-            titleRes = R.string.new_event_text,
-            content = "${device.name}: ${event.type.name}"
         )
 
         _notifications.update { notification }
@@ -63,15 +86,27 @@ class NotificationManager @Inject constructor() {
     fun notify(event: Event, rep: DeviceRepository) {
         if(!event.notify) return
         if(event.notification != null) {
-            notify("New event", event.notification)
+            _notifications.update {
+                Notification(id = random.nextInt(), titleRes = R.string.new_event_text, content = event.notification)
+            }
             return
         }
 
         kotlinx.coroutines.MainScope().launch {
             val device = rep.getDeviceById(event.deviceId) ?: return@launch
 
-            notify(device, event)
+            notifyAboutEvent(device, event)
         }
+    }
+
+    private fun notifyAboutEvent(device: Device, event: Event) {
+        val notification = Notification(
+            id = Random().nextInt(),
+            titleRes = R.string.new_event_text,
+            content = "${device.name}: ${event.type.name}"
+        )
+
+        _notifications.update { notification }
     }
 
 }

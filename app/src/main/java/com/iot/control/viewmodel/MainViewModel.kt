@@ -11,8 +11,4 @@ class MainViewModel @Inject constructor(
     private val serviceConnection: IotServiceConnection
 ) : ViewModel(), ServiceConnection by serviceConnection {
 
-    fun toggleMqttServices(){}
-    fun toggleSmsServices(){}
-    fun toggleBroker(){}
-
 }
